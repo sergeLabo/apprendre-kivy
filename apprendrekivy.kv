@@ -1,0 +1,147 @@
+#:kivy 1.11.1
+
+<MainScreen>:
+    BoxLayout: # une boite pour tout
+        orientation: 'horizontal'
+        color: (0, 0, 0, 1)
+
+        BoxLayout: # gauche avec image
+            # Taille carrée, largeur = hauteur
+            size_hint_x: root.height/root.width
+            orientation: 'vertical'
+
+            canvas:
+                # Impossible de modifier la couleur du fond et de coller une
+                # image avec alpha redimensionnée
+                Rectangle:
+                    # self.size = taille du BoxLayout gauche
+                    size: self.size
+                    source: "labo.jpg"
+
+            Label:  # Training Pong
+                text: "Training Pong"
+                bold: True
+                size_hint_y: 0.1
+                font_size: "48dp"
+                color: (0.5, 0.5, 0, 1)
+            Label:  # Pour apprendre Kivy
+                text: "Pour apprendre Kivy"
+                size_hint_y: 0.8
+                font_size: "36dp"
+                color: (0, 1, 1, 1)
+            Label:  # accents
+                text: "àùéèîôûê@ àùéèîôûê@"
+                size_hint_y: 0.1
+                font_size: "24dp"
+                color: (1, 0, 1, 1)
+
+        BoxLayout: # droite avec boutons
+            size_hint_x: 1 - root.height/root.width
+            orientation: 'vertical'
+            Button:  # Jouer
+                background_color: (0.8, 0.8, 0.8, 1)
+                text: 'Jouer'
+                color: (0, 1, 0, 1)
+                font_size: "22dp"
+                on_release: app.root.current = "Pong"
+            Button:  # Options
+                background_color: (0.7, 0.7, 0.7, 1)
+                text: 'Options'
+                color: (0, 1, 0, 1)
+                font_size: "22dp"
+                on_release: app.open_settings()
+            Button:  # Quitter
+                background_color: (0.6, 0.6, 0.6, 1)
+                text: 'Quitter'
+                color: (0, 1, 0, 1)
+                font_size: "22dp"
+                on_release: app.do_quit()
+
+<PongBall>:
+    canvas:
+        Ellipse:
+            pos: self.pos
+            size: self.size
+
+<PongPaddle>:
+    canvas:
+        Rectangle:
+            pos:self.pos
+            size:self.size
+
+<PongGame>:
+    ball: pong_ball
+    player1: player_left
+    player2: player_right
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        BoxLayout:  # Boite à gauche
+            orientation: 'horizontal'
+            size_hint_x: 0.2
+
+        BoxLayout:  # Boite au centre
+            orientation: 'horizontal'
+            size_hint_x: 0.6
+            canvas:
+                Rectangle:  # ligne de fond gauche
+                    pos: self.center_x - 400, 0
+                    size: 10, self.height
+                Rectangle:  # le filet
+                    pos: self.center_x - 5, 0
+                    size: 10, self.height
+                Rectangle:  # ligne de fond droite
+                    pos: self.center_x + 350, 0
+                    size: 10, self.height
+
+            Label:  # score 1
+                font_size: 20
+                center_x: root.width / 4
+                top: root.top - 30
+                text: str(root.player1.score)
+
+            Label:  # score 2
+                font_size: 20
+                center_x: root.width * 3 / 4
+                top: root.top - 30
+                text: str(root.player2.score)
+
+            PongBall:
+                id: pong_ball
+                center: self.parent.center
+
+            PongPaddle:
+                id: player_left
+                x: root.x
+                center_y: root.center_y
+
+            PongPaddle:
+                id: player_right
+                x: root.width - self.width
+                center_y: root.center_y
+
+        BoxLayout: # Boite bord droit
+            orientation: 'vertical'
+            size_hint_x: 0.2
+
+            Label:
+                size_hint_y: 0.84
+                font_size: 20
+                text: "J'apprends\navec\nLa Labomedia"
+
+            Button:  # Options
+                size_hint_y: 0.08
+                background_color: (0.7, 0.7, 0.7, 1)
+                text: 'Options'
+                color: (0, 1, 0, 1)
+                font_size: "22dp"
+                on_release: app.open_settings()
+
+            Button:
+                size_hint_y: 0.08
+                background_color: (0.6, 0.6, 0.6, 1)
+                text: 'Quitter'
+                color: (0, 1, 0, 1)
+                font_size: "22dp"
+                on_release: app.do_quit()
