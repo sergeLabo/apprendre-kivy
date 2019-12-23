@@ -1,23 +1,53 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+#######################################################################
+# Copyright (C) La Labomedia January 2020
+#
+# This file is part of Apprendre Kivy.
+
+# Apprendre Kivy is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# Apprendre Kivy is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with Apprendre Kivy.  If not, see <https://www.gnu.org/licenses/>.
+#######################################################################
+
+"""
+Application avec 2 écrans:
+    - Main: un serveur TCP est lancé, avec 1 menu
+    - Screen1: envoi réception
+"""
+
 
 __version__ = '0.001'
 
 
 import os
+import json
+
+
+from kivy.support import install_twisted_reactor
+install_twisted_reactor()
+from twisted.internet import reactor
+from twisted.internet import protocol
+
 
 import kivy
 kivy.require('1.11.1')
-
 from kivy.core.window import Window
 # Les 3 lignes ci-dessous sont à commenter pour buildozer
 # L'écran de mon tél fait 1280*720
-k = 1.2
+k = 1.0
 WS = (int(1280*k), int(720*k))
 Window.size = WS
-
-
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.widget import Widget
@@ -28,78 +58,10 @@ from kivy.vector import Vector
 from kivy.clock import Clock
 
 
-class PongPaddle(Widget):
-    score = NumericProperty(0)
-    can_bounce = BooleanProperty(True)
-    size = 15, 20
-
-    def bounce_ball(self, ball):
-        if self.collide_widget(ball) and self.can_bounce:
-            vx, vy = ball.velocity
-            offset = (ball.center_y - self.center_y) / (self.height / 2)
-            bounced = Vector(-1 * vx, vy)
-            vel = bounced * 1.1
-            ball.velocity = vel.x, vel.y + offset
-            self.can_bounce = False
-        elif not self.collide_widget(ball) and not self.can_bounce:
-            self.can_bounce = True
-
-
-class PongBall(Widget):
-    velocity_x = NumericProperty(0)
-    velocity_y = NumericProperty(0)
-    velocity = ReferenceListProperty(velocity_x, velocity_y)
-    size = 25, 25
-
-    def move(self):
-        self.pos = Vector(*self.velocity) + self.pos
-
-
-class PongGame(Screen, Widget):
-
-    # Attributs de class
-    ball = ObjectProperty(None)
-    player1 = ObjectProperty(None)
-    player2 = ObjectProperty(None)
-
-    def __init__(self, **kwargs):
-        super(PongGame, self).__init__(**kwargs)
-        print("Initialisation du Screen Pong ok")
-        self.tictac = Clock.schedule_interval(self.update, 0.016)
-
-    def serve_ball(self, vel=(4, 0)):
-        self.ball.center = self.center
-        self.ball.velocity = vel
-
-    def update(self, dt):
-        print("Update", self.ball.x, self.ball.y)
-        self.ball.move()
-
-        # bounce ball off paddles
-        self.player1.bounce_ball(self.ball)
-        self.player2.bounce_ball(self.ball)
-
-        # bounce ball off bottom or top
-        if (self.ball.y < self.y) or (self.ball.top > self.top):
-            self.ball.velocity_y *= -1
-
-        # went off a side to score point?
-        if self.ball.x < self.x:
-            self.player2.score += 1
-            self.serve_ball(vel=(4, 0))
-        if self.ball.x > self.width:
-            self.player1.score += 1
-            self.serve_ball(vel=(-4, 0))
-
-    def on_touch_move(self, touch):
-        if touch.x < self.width / 3:
-            self.player1.center_y = touch.y
-        if touch.x > self.width - self.width / 3:
-            self.player2.center_y = touch.y
-
-
 class MainScreen(Screen):
-    """Ecran principal, l'appli s'ouvre sur cet écran"""
+    """Ecran principal, l'appli s'ouvre sur cet écran
+    root est le parent de cette classe dans la section <MainScreen> du kv
+    """
 
     # Attributs de class
     bgcolor = ListProperty([0,0,0])
@@ -112,16 +74,48 @@ class MainScreen(Screen):
         print("Initialisation du Screen MainScreen ok")
 
     def get_screen_manager(self):
-        return TrainingPongApp.get_running_app().screen_manager
+        return ApprendreKivyApp.get_running_app().screen_manager
+
+
+class Screen1(Screen):
+    """root est le parent de cette classe dans la section <Screen1> du kv
+    """
+
+    def __init__(self, **kwargs):
+        super(Screen1, self).__init__(**kwargs)
+        self.tictac = Clock.schedule_interval(self.update, 0.016)
+        print("Initialisation du Screen Screen1 ok")
+
+    def update(self, dt):
+        pass
+
+    def do_slider(self, iD, instance, value):
+        """Called if slider change."""
+
+        print("slider", iD, value)
+
+
+class TwistedServer(protocol.Protocol):
+    def dataReceived(self, data):
+        response = self.factory.app.handle_message(data)
+        if response:
+            self.transport.write(response)
+
+
+class TwistedServerFactory(protocol.Factory):
+    protocol = TwistedServer
+
+    def __init__(self, app):
+        self.app = app
 
 
 # Variable globale qui définit les écrans
 # L'écran de configuration est toujours créé par défaut
 # Il suffit de créer un bouton d'accès
-SCREENS = { 0: (MainScreen, "Main"), 1: (PongGame, "Pong")}
+SCREENS = { 0: (MainScreen, "Main"), 1: (Screen1, "Screen1")}
 
 
-class TrainingPongApp(App):
+class ApprendreKivyApp(App):
     """Construction de l'application. Exécuté par __main__,
     app est le parent de cette classe dans kv.
     """
@@ -140,7 +134,20 @@ class TrainingPongApp(App):
 
     def on_start(self):
         """Exécuté apres build()"""
-        pass
+
+        print("server started")
+        reactor.listenTCP(8000, TwistedServerFactory(self))
+
+    def handle_message(self, msg):
+        msg = msg.decode('utf-8')
+        print("received:  {}\n".format(msg))
+
+        if msg == "ping":
+            msg = "Pong"
+        if msg == "plop":
+            msg = "Kivy Rocks!!!"
+        print("responded: {}\n".format(msg))
+        return msg.encode('utf-8')
 
     def build_config(self, config):
         """Si le fichier *.ini n'existe pas,
@@ -157,7 +164,7 @@ class TrainingPongApp(App):
 
         config.setdefaults('kivy',
                             { 'log_level': 'debug',
-                              'log_name': 'pong_%y-%m-%d_%_.txt',
+                              'log_name': 'apprendre-kivy_%y-%m-%d_%_.txt',
                               'log_dir': '/sdcard',
                               'log_enable': '1'})
 
@@ -166,7 +173,7 @@ class TrainingPongApp(App):
                               'double_tap_distance': 20})
 
     def build_settings(self, settings):
-        """Construit l'interface de l'écran Options, pour multipong seul,
+        """Construit l'interface de l'écran Options, pour training_kivy seul,
         Kivy est par défaut, appelé par app.open_settings() dans .kv
         """
 
@@ -178,7 +185,7 @@ class TrainingPongApp(App):
                    ]"""
 
         # self.config est le config de build_config
-        settings.add_json_panel('Training-Pong', self.config, data=data)
+        settings.add_json_panel('training_kivy', self.config, data=data)
 
     def on_config_change(self, config, section, key, value):
         """Si modification des options, fonction appelée automatiquement
@@ -206,15 +213,18 @@ class TrainingPongApp(App):
         print("Je quitte proprement")
 
         # Stop propre de Clock.schedule_interval
-        pong_screen = self.screen_manager.get_screen("Pong")
-        pong_screen.tictac.cancel()
+        net = self.screen_manager.get_screen("Screen1")
+        net.tictac.cancel()
+
+        # Stop de Twisted
+        reactor.stop()
 
         # Kivy
-        TrainingPongApp.get_running_app().stop()
+        ApprendreKivyApp.get_running_app().stop()
 
         # Extinction forcée de tout, si besoin
         os._exit(0)
 
 
 if __name__ == '__main__':
-    TrainingPongApp().run()
+    ApprendreKivyApp().run()

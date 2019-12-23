@@ -43,7 +43,7 @@
                 text: 'Jouer'
                 color: (0, 1, 0, 1)
                 font_size: "22dp"
-                on_release: app.root.current = "Pong"
+                on_release: app.root.current = "Network"
             Button:  # Options
                 background_color: (0.7, 0.7, 0.7, 1)
                 text: 'Options'
@@ -57,78 +57,38 @@
                 font_size: "22dp"
                 on_release: app.do_quit()
 
-<PongBall>:
-    canvas:
-        Ellipse:
-            pos: self.pos
-            size: self.size
-
-<PongPaddle>:
-    canvas:
-        Rectangle:
-            pos:self.pos
-            size:self.size
-
-<PongGame>:
-    ball: pong_ball
-    player1: player_left
-    player2: player_right
+<Network>:
 
     BoxLayout:
         orientation: 'horizontal'
 
         BoxLayout:  # Boite à gauche
-            orientation: 'horizontal'
+            orientation: 'vertical'
             size_hint_x: 0.2
-
-        BoxLayout:  # Boite au centre
-            orientation: 'horizontal'
-            size_hint_x: 0.6
             canvas:
-                Rectangle:  # ligne de fond gauche
-                    pos: self.center_x - 400, 0
-                    size: 10, self.height
-                Rectangle:  # le filet
-                    pos: self.center_x - 5, 0
-                    size: 10, self.height
-                Rectangle:  # ligne de fond droite
-                    pos: self.center_x + 350, 0
-                    size: 10, self.height
+                Color:
+                    rgba: 0.2, 0.4, 0.6, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Slider:
+                id: un_un
+                orientation: "vertical"
+                range: 0, 1
+                value: 0
+                on_value: root.do_slider("un_un", *args)
 
-            Label:  # score 1
-                font_size: 20
-                center_x: root.width / 4
-                top: root.top - 30
-                text: str(root.player1.score)
+        BoxLayout:  # Boite àau centre
+            orientation: 'vertical'
+            size_hint_x: 0.6
 
-            Label:  # score 2
-                font_size: 20
-                center_x: root.width * 3 / 4
-                top: root.top - 30
-                text: str(root.player2.score)
-
-            PongBall:
-                id: pong_ball
-                center: self.parent.center
-
-            PongPaddle:
-                id: player_left
-                x: root.x
-                center_y: root.center_y
-
-            PongPaddle:
-                id: player_right
-                x: root.width - self.width
-                center_y: root.center_y
-
-        BoxLayout: # Boite bord droit
+        BoxLayout:  # Boite à droite
             orientation: 'vertical'
             size_hint_x: 0.2
 
             Label:
                 size_hint_y: 0.84
                 font_size: 20
-                text: "J'apprends\navec\nLa Labomedia"
 
             Button:  # Options
                 size_hint_y: 0.08
