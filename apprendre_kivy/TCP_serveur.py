@@ -23,6 +23,7 @@
 
 import socket
 from time import sleep
+import cv2
 
 
 class TcpClient3:

@@ -37,7 +37,7 @@ import json
 from kivy.support import install_twisted_reactor
 install_twisted_reactor()
 from twisted.internet import reactor
-from twisted.internet import protocol
+from twisted.internet.protocol import Protocol, Factory, DatagramProtocol
 
 
 import kivy
@@ -56,6 +56,38 @@ from kivy.properties import  NumericProperty, ReferenceListProperty,\
                              ListProperty
 from kivy.vector import Vector
 from kivy.clock import Clock
+
+
+class TwistedServer(Protocol):
+    def dataReceived(self, data):
+        response = self.factory.app.handle_message(data)
+        if response:
+            self.transport.write(response)
+
+
+class TwistedServerFactory(Factory):
+    protocol = TwistedServer
+
+    def __init__(self, app):
+        self.app = app
+
+
+class MulticastServer(DatagramProtocol):
+
+    def startProtocol(self):
+        """Called after protocol has started listening."""
+
+        # Set the TTL>1 so multicast will cross router hops:
+        self.transport.setTTL(5)
+        # Join a specific multicast group:
+        self.transport.joinGroup("228.0.0.5")
+
+    def datagramReceived(self, datagram, address):
+        print("Datagram %s received from %s" % (datagram, address))
+        if datagram == "Client: Ping":
+            # Rather than replying to the group multicast address, we send the
+            # reply directly (unicast) to the originating port:
+            self.transport.write(("Server: Pong").encode("utf-8"), address)
 
 
 class MainScreen(Screen):
@@ -93,20 +125,6 @@ class Screen1(Screen):
         """Called if slider change."""
 
         print("slider", iD, value)
-
-
-class TwistedServer(protocol.Protocol):
-    def dataReceived(self, data):
-        response = self.factory.app.handle_message(data)
-        if response:
-            self.transport.write(response)
-
-
-class TwistedServerFactory(protocol.Factory):
-    protocol = TwistedServer
-
-    def __init__(self, app):
-        self.app = app
 
 
 # Variable globale qui définit les écrans
