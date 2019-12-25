@@ -21,7 +21,7 @@
 #######################################################################
 
 """
-Client multicast avec twisted
+Multicast avec twisted
 """
 
 
@@ -29,7 +29,35 @@ from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
 
 import sys
+import cv2
 from time import sleep
+import threading
+import ast
+
+class Display:
+
+    def __init__(self):
+        self.img = cv2.imread("labo.jpg")
+        self.loop = 1
+        self.img_size = 1
+        self.thread_play_partition()
+
+    def thread_play_partition(self):
+        thread_partition = threading.Thread(target=self.display)
+        thread_partition.start()
+
+    def display(self):
+        while self.loop:
+            if self.img_size < 0.2:
+                self.img_size = 0.2
+            self.img = cv2.resize(self.img,
+                             (int(self.img_size*1024), int(self.img_size*1024)),
+                             interpolation=cv2.INTER_LINEAR)
+            cv2.imshow('Image', self.img)
+
+            k = cv2.waitKey(1)
+            if k == 27:
+                cv2.destroyAllWindows()
 
 
 class MulticastClient(DatagramProtocol):
@@ -37,14 +65,25 @@ class MulticastClient(DatagramProtocol):
     def startProtocol(self):
         # Join the multicast address, so we can receive replies:
         self.transport.joinGroup("228.0.0.5")
-        # Send to 228.0.0.5:8005 - all listeners on the multicast address
+        # Send to 228.0.0.5:18888 - all listeners on the multicast address
         # (including us) will receive this message.
-        self.transport.write(('Client: Ping').encode("utf-8"), ("228.0.0.5", 8005))
+        self.transport.write(('Client: Ping').encode("utf-8"), ("228.0.0.5", 18888))
+        print("Joined to the multicast")
+
+        self.disp = Display()
+        print("Init multicast")
 
     def datagramReceived(self, datagram, address):
+        """self.transport.write(('Client: Ping').encode("utf-8"), ("228.0.0.5", 18888))"""
+
         print("Datagram %s received from %s" % (datagram, address))
-        self.transport.write(('Client: Ping').encode("utf-8"), ("228.0.0.5", 8005))
-        sleep(1)
+        # data est un dict ou None
+        data = datagram_to_dict(datagram)
+        if data:
+            if "image size" in data:
+                self.disp.img_size = data["image size"]
+                print("img_size", self.disp.img_size)
+        sleep(0.01)
 
 
 class MulticastServer(DatagramProtocol):
@@ -65,9 +104,34 @@ class MulticastServer(DatagramProtocol):
             self.transport.write(("Server: Pong").encode("utf-8"), address)
 
 
+def datagram_to_dict(data):
+    """Décode le message.
+    Retourne un dict ou None
+    """
+
+    try:
+        dec = data.decode("utf-8")
+    except:
+        print("Décodage UTF-8 impossible")
+        dec = data
+
+    try:
+        msg = ast.literal_eval(dec)
+    except:
+        print("ast.literal_eval impossible")
+        msg = dec
+
+    if isinstance(msg, dict):
+        return msg
+    else:
+        print("Message reçu: None")
+        return None
+
+
 def run_client():
-    reactor.listenMulticast(8005, MulticastClient(), listenMultiple=True)
+    reactor.listenMulticast(18888, MulticastClient(), listenMultiple=True)
     reactor.run()
+
 
 def run_server():
     """
@@ -77,6 +141,7 @@ def run_server():
 
     reactor.listenMulticast(8005, MulticastServer(), listenMultiple=True)
     reactor.run()
+
 
 def main(opt):
 
@@ -88,12 +153,14 @@ def main(opt):
 
 
 if __name__ == '__main__':
+    # #run_server()
+    run_client()
 
-    print("""\n\nLancement du script avec:
-    python3 labmulticasttwisted.py server
-    ou
-    python3 labmulticasttwisted.py client\n\n
-    """)
+    # #print("""\n\nLancement du script avec:
+    # #python3 labmulticasttwisted.py server
+    # #ou
+    # #python3 labmulticasttwisted.py client\n\n
+    # #""")
 
-    opt = sys.argv[1]
-    main(opt)
+    # #opt = sys.argv[1]
+    # #main(opt)
