@@ -33,6 +33,7 @@ __version__ = '0.001'
 import os
 import json
 import socket
+from time import sleep
 
 from kivy.support import install_twisted_reactor
 install_twisted_reactor()
@@ -47,9 +48,9 @@ kivy.require('1.11.1')
 from kivy.core.window import Window
 # Les 3 lignes ci-dessous sont à commenter pour buildozer
 # L'écran de mon tél fait 1280*720
-k = 1.0
-WS = (int(1280*k), int(720*k))
-Window.size = WS
+# #k = 1.0
+# #WS = (int(1280*k), int(720*k))
+# #Window.size = WS
 
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
@@ -63,62 +64,71 @@ from kivy.clock import Clock
 
 # Récupération de l'ip locale pour l'envoyer à tous les clients en multicast
 def get_my_LAN_ip():
-    sok = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sok.connect(("8.8.8.8", 80))
-    ip = sok.getsockname()[0]
-    sok.close()
-    print("LAN Ip =", ip)
+    try:
+        sok = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sok.connect(("8.8.8.8", 80))
+        ip = sok.getsockname()[0]
+        sok.close()
+    except:
+        ip = "127.0.0.1"
     return ip
+
 LAN_IP = get_my_LAN_ip()
+print("LAN IP =", LAN_IP)
 
 
 class TCPServer(Protocol):
+
+    def __init__(self):
+        # Boucle
+        self.tictac = Clock.schedule_interval(self.update, 1)  # 0.016)
+
     def dataReceived(self, data):
         response = self.factory.app.handle_message(data)
         if response:
             self.transport.write(response)
+
+    def update(self, dt):
+        print(dir(self))
+        scr1 = self.app.screen_manager.get_screen("Screen1")
+        data = scr1.create_message()
+        print("Envoi de:", data)
+        self.transport.write(data)
 
 
 class TCPServerFactory(Factory):
     protocol = TCPServer
 
     def __init__(self, app):
+        """self.app:
+        Ce mot clé se réferre toujours à l'instance de votre application kivy,
+        soit ApprendreKivyApp()
+        """
         self.app = app
-
-
-class EchoClient(Protocol):
-    def connectionMade(self):
-        self.factory.app.on_connection(self.transport)
-
-    def dataReceived(self, data):
-        self.factory.app.print_message(data.decode('utf-8'))
-
-
-class EchoClientFactory(ClientFactory):
-    protocol = EchoClient
-
-    def __init__(self, app):
-        self.app = app
-
-    def startedConnecting(self, connector):
-        # #self.app.print_message('Started to connect.')
-        print('Started to connect.')
-
-    def clientConnectionLost(self, connector, reason):
-        # #self.app.print_message('Lost connection.')
-        print('Lost connection.')
-
-    def clientConnectionFailed(self, connector, reason):
-        # #self.app.print_message('Connection failed.')
-        print('Connection failed.')
 
 
 class MulticastServer(DatagramProtocol):
+    """def datagramReceived(self, datagram, address):
+        print("Datagram %s received from %s" % (datagram, address))
+        if datagram == "Client: Ping":
+            # Rather than replying to the group multicast address, we send the
+            # reply directly (unicast) to the originating port:
+            self.transport.write(("Server: Pong").encode("utf-8"), address)
+        """
 
     def __init__(self, app, multi_ip):
+        """self.app:
+        Ce mot clé se réferre toujours à l'instance de votre application.
+        """
         self.app = app
-        self.multi_ip = multi_ip
+
+        # Boucle d'envoi
         self.tictac = None
+
+        # Adresse multicast
+        self.multi_ip = self.app.config['network']['multi_ip']
+        self.multi_port = int(self.app.config['network']['multi_port'])
+        self.address = self.multi_ip, self.multi_port
 
     def startProtocol(self):
         """Called after protocol has started listening."""
@@ -131,18 +141,11 @@ class MulticastServer(DatagramProtocol):
         # Boucle
         self.tictac = Clock.schedule_interval(self.update, 1)  # 0.016)
 
-    def datagramReceived(self, datagram, address):
-        print("Datagram %s received from %s" % (datagram, address))
-        if datagram == "Client: Ping":
-            # Rather than replying to the group multicast address, we send the
-            # reply directly (unicast) to the originating port:
-
-            self.transport.write(("Server: Pong").encode("utf-8"), address)
-
     def update(self, dt):
-        data = self.app.get_slider()
-        address = ("228.0.0.5", 18888)
-        self.transport.write(data, address)
+        scr1 = self.app.screen_manager.get_screen("Screen1")
+        data = scr1.create_message()
+        print("Envoi de:", data)
+        self.transport.write(data,self.address)
 
 
 class MainScreen(Screen):
@@ -150,12 +153,11 @@ class MainScreen(Screen):
     root est le parent de cette classe dans la section <MainScreen> du kv
     """
 
-    # Attributs de class
-    bgcolor = ListProperty([0,0,0])
-
     def __init__(self, **kwargs):
-        # Vieux python 2 ! super(MainScreen, self).__init__(**kwargs)
-        # Simple en python 3
+        """Vieux python 2 ! super(MainScreen, self).__init__(**kwargs)
+        plus simple en python 3 !
+        """
+
         super().__init__(**kwargs)
 
         # Construit le jeu, le réseau, tourne tout le temps
@@ -167,15 +169,17 @@ class MainScreen(Screen):
 
 
 class Screen1(Screen):
-    """root est le parent de cette classe dans la section <Screen1> du kv
-    """
+    """root est le parent de cette classe dans la section <Screen1> du kv"""
 
     def __init__(self, **kwargs):
-        # Vieux python 2 !
-        # super(Screen1, self).__init__(**kwargs)
-        # Simple en python 3
+        """Vieux python 2 ! super(MainScreen, self).__init__(**kwargs)
+        plus simple en python 3 !
+        """
+
         super().__init__(**kwargs)
         self.img_size = 1
+        self.pos_vert = 1
+        self.pos_hori = 1
 
         print("Initialisation du Screen Screen1 ok")
 
@@ -183,36 +187,51 @@ class Screen1(Screen):
         """Called if slider change."""
 
         print("slider", iD, value)
-        if iD == "un_un":
+
+        if iD == "img_size":
             self.img_size = value
 
-# Variable globale qui définit les écrans
-# L'écran de configuration est toujours créé par défaut
-# Il suffit de créer un bouton d'accès
-# Les class appelées (MainScreen, Screen1) sont placées avant
+        if iD == "pos_vert":
+            self.position_vert = value
+
+        if iD == "pos_hori":
+            self.position_hori = value
+
+    def create_message(self):
+        """Le message est un dict, puis json.dumps,
+        puis encode pour avoir des bytes
+        dict avec keys:
+                "kivy ip": "228.0.0.5"
+                "image size": 1.0
+                "image position": (100, 200)
+        """
+
+        data_dict = {   "kivy_ip": LAN_IP,
+                        "image_size": self.img_size,
+                        "image_pos": (self.pos_vert, self.pos_hori)}
+
+        data = json.dumps(data_dict).encode("utf-8")
+
+        return data
+
+
+"""
+Variable globale qui définit les écrans
+L'écran de configuration est toujours créé par défaut
+Il suffit de créer un bouton d'accès
+Les class appelées (MainScreen, Screen1) sont placées avant
+"""
 SCREENS = { 0: (MainScreen, "Main"),
             1: (Screen1, "Screen1")}
 
 
 class ApprendreKivyApp(App):
     """Construction de l'application. Exécuté par __main__,
-    app est le parent de cette classe dans kv.
-
-    def __init__(self):
-        self.cast = None
-        # Pour savoir quel réseau tourne
-        self.tcp = None
-        self.multi = None
+    app est le parent de cette classe dans kv
     """
 
-    connection = None
-    textbox = None
-    label = None
-
     def build(self):
-        """Exécuté après build_config
-        Construit les écrans
-        """
+        """Exécuté après build_config, construit les écrans"""
 
         # Création des écrans
         self.screen_manager = ScreenManager()
@@ -225,7 +244,6 @@ class ApprendreKivyApp(App):
 
     def on_start(self):
         """Exécuté apres build()
-
         Pas de reactor.run()
         install_twisted_reactor() du début du script semble le faire !
         """
@@ -242,12 +260,20 @@ class ApprendreKivyApp(App):
             reactor.listenMulticast(multi_port,
                                     MulticastServer(self, multi_ip),
                                     listenMultiple=True)
-            print("Multicast server started: ip = {} port = {}".format(multi_ip, multi_port))
+            aaaa = "Multicast server started: ip = {} port = {}"
+            print(aaaa.format(multi_ip, multi_port))
 
         if self.cast == 'tcp':
             # TCP
             tcp_port = int(self.config.get('network', 'tcp_port'))
+
+            # On appelle:
+            # class TCPServerFactory(Factory):
+            #     def __init__(self, app):
+            #         ....
+            # app est en fait le self de cette class ApprendreKivyApp()
             reactor.listenTCP(tcp_port, TCPServerFactory(self))
+
             print("TCP server started sur le port {}".format(tcp_port))
 
     def handle_message(self, msg):
@@ -284,7 +310,7 @@ class ApprendreKivyApp(App):
                             { 'multi_ip': '228.0.0.5',
                               'multi_port': 18888,
                               'tcp_port': 8000,
-                              'cast': 'tcp',
+                              'cast': 'multi',
                               'freq': 60})
 
         config.setdefaults('kivy',
@@ -366,12 +392,13 @@ class ApprendreKivyApp(App):
         self.screen_manager.current = ("Main")
 
     def do_quit(self):
+        """
+        # Stop propre de Clock.schedule_interval
+        net = self.screen_manager.get_screen("Screen1")
+        net.tictac.cancel()
+        """
 
         print("Je quitte proprement")
-
-        # ## Stop propre de Clock.schedule_interval
-        # #net = self.screen_manager.get_screen("Screen1")
-        # #net.tictac.cancel()
 
         # Stop de Twisted
         if reactor.running:
@@ -389,13 +416,36 @@ if __name__ == '__main__':
     ApprendreKivyApp().run()
 
     """
-['__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__events__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__proxy_getter', '__proxy_setter', '__pyx_vtable__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setstate__', '__sizeof__', '__str__', '__subclasshook__', '_app_directory', '_app_name', '_app_settings', '_app_window', '_get_user_data_dir', '_install_settings_keys', '_kwargs_applied_init', '_on_config_change', '_on_keyboard_settings', '_running_app', '_user_data_dir', 'apply_property', 'bind', 'build', 'build_config', 'build_settings', 'built', 'cast', 'close_settings', 'config', 'create_property', 'create_settings', 'destroy_settings', 'directory', 'dispatch', 'dispatch_children', 'dispatch_generic', 'display_settings', 'do_quit', 'events', 'fbind', 'funbind', 'get_application_config', 'get_application_icon', 'get_application_name', 'get_property_observers', 'get_running_app', 'getter', 'go_mainscreen', 'handle_message', 'icon', 'is_event_type', 'kv_directory', 'kv_file', 'load_config', 'load_kv', 'name', 'on_config_change', 'on_icon', 'on_pause', 'on_resume', 'on_start', 'on_stop', 'on_title', 'open_settings', 'options', 'properties', 'property', 'proxy_ref', 'register_event_type', 'root', 'root_window', 'run', 'screen_manager', 'setter', 'settings_cls', 'stop', 'title', 'uid', 'unbind', 'unbind_uid', 'unregister_event_types', 'use_kivy_settings', 'user_data_dir']
 
-['__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__implemented__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__name__', '__ne__', '__new__', '__providedBy__', '__provides__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', '_cancelCallLater', '_cancellations', '_checkProcessArgs', '_childWaker', '_disconnectSelectable', '_doIterationInThread', '_doReadOrWrite', '_doSelectInThread', '_eventTriggers', '_exitSignal', '_handleSignals', '_initThreadPool', '_initThreads', '_insertNewDelayedCalls', '_installSignalHandlers', '_interleave', '_internalReaders', '_justStopped', '_lock', '_mainLoopShutdown', '_moveCallLaterSooner', '_nameResolver', '_newTimedCalls', '_pendingTimedCalls', '_preenDescriptorsInThread', '_process_Failure', '_process_Notify', '_reallyStartRunning', '_registerAsIOThread', '_removeAll', '_sendToMain', '_sendToThread', '_started', '_startedBefore', '_stopThreadPool', '_stopped', '_supportedAddressFamilies', '_threadpoolStartupID', '_uninstallHandler', '_wakerFactory', '_workerInThread', 'addReader', 'addSystemEventTrigger', 'addWriter', 'adoptDatagramPort', 'adoptStreamConnection', 'adoptStreamPort', 'callFromThread', 'callInThread', 'callLater', 'callWhenRunning', 'connectSSL', 'connectTCP', 'connectUNIX', 'connectUNIXDatagram', 'crash', 'disconnectAll', 'doIteration', 'doThreadIteration', 'ensureWorkerThread', 'fireSystemEvent', 'getDelayedCalls', 'getReaders', 'getThreadPool', 'getWriters', 'installNameResolver', 'installResolver', 'installWaker', 'installed', 'interleave', 'iterate', 'listenMulticast', 'listenSSL', 'listenTCP', 'listenUDP', 'listenUNIX', 'listenUNIXDatagram', 'mainLoop', 'mainWaker', 'nameResolver', 'reads', 'removeAll', 'removeReader', 'removeSystemEventTrigger', 'removeWriter', 'resolve', 'resolver', 'run', 'runUntilCurrent', 'running', 'seconds', 'sigBreak', 'sigInt', 'sigTerm', 'spawnProcess', 'startRunning', 'stop', 'suggestThreadPoolSize', 'threadCallQueue', 'threadpool', 'threadpoolShutdownID', 'timeout', 'toMainThread', 'toThreadQueue', 'usingThreads', 'wakeUp', 'waker', 'workerThread', 'writes']
+class EchoClient(Protocol):
+    def connectionMade(self):
+        self.factory.app.on_connection(self.transport)
+
+    def dataReceived(self, data):
+        self.factory.app.print_message(data.decode('utf-8'))
 
 
-"""
+class EchoClientFactory(ClientFactory):
+    protocol = EchoClient
 
+    def __init__(self, app):
+        self.app = app
+
+    def startedConnecting(self, connector):
+        # #self.app.print_message('Started to connect.')
+        print('Started to connect.')
+
+    def clientConnectionLost(self, connector, reason):
+        # #self.app.print_message('Lost connection.')
+        print('Lost connection.')
+
+    def clientConnectionFailed(self, connector, reason):
+        # #self.app.print_message('Connection failed.')
+        print('Connection failed.')
+
+
+
+TCP
     # #def on_start(self):
         # #self.connect_to_server()
 
@@ -409,3 +459,4 @@ if __name__ == '__main__':
     # #def send_message(self, *args):
         # #if msg and self.connection:
             # #self.connection.write(msg.encode('utf-8'))
+"""

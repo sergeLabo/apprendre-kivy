@@ -25,14 +25,17 @@ Multicast avec twisted
 """
 
 
-from twisted.internet.protocol import DatagramProtocol
-from twisted.internet import reactor
-
-import sys
+import os, sys
 import cv2
 from time import sleep
 import threading
 import ast
+import numpy as np
+
+from twisted.internet.protocol import Protocol, Factory, DatagramProtocol,\
+                                      ReconnectingClientFactory
+from twisted.internet import reactor
+
 
 class Display:
 
@@ -40,24 +43,42 @@ class Display:
         self.img = cv2.imread("labo.jpg")
         self.loop = 1
         self.img_size = 1
-        self.thread_play_partition()
+        self.img_pos = 10, 10
+        self.thread_image_display()
+        self.black_image = np.zeros((1000, 1000, 3), np.uint8)
+        print("Initialisation de Display done.")
 
-    def thread_play_partition(self):
-        thread_partition = threading.Thread(target=self.display)
-        thread_partition.start()
+    def thread_image_display(self):
+        thread_display = threading.Thread(target=self.display)
+        thread_display.start()
 
     def display(self):
         while self.loop:
+            # Dimension
             if self.img_size < 0.2:
                 self.img_size = 0.2
             self.img = cv2.resize(self.img,
-                             (int(self.img_size*1024), int(self.img_size*1024)),
+                             (int(self.img_size*400), int(self.img_size*400)),
                              interpolation=cv2.INTER_LINEAR)
-            cv2.imshow('Image', self.img)
+            # Position
+            black_image = self.black_image.copy()
+            # gray[y1:y2, x1:x2] 162:578
+            # 1440/900 = 1.6
+            # #a = (self.screen[0]/self.screen[1] -1) / 2
+            x1 = int(50*self.img_pos[0])
+            x2 = x1 + self.img.shape[0]
+            y1 = int(50*self.img_pos[1])
+            y2 = y1 + self.img.shape[1]
+            black_image[y1:y2, x1:x2] = self.img
 
-            k = cv2.waitKey(1)
+            cv2.imshow('Image', black_image)
+
+            k = cv2.waitKey(1000)
             if k == 27:
-                cv2.destroyAllWindows()
+                self.loop = 0
+        cv2.destroyAllWindows()
+        reactor.stop()
+        os._exit(0)
 
 
 class MulticastClient(DatagramProtocol):
@@ -74,34 +95,66 @@ class MulticastClient(DatagramProtocol):
         print("Init multicast")
 
     def datagramReceived(self, datagram, address):
-        """self.transport.write(('Client: Ping').encode("utf-8"), ("228.0.0.5", 18888))"""
+        """self.transport.write(('Client: Ping').encode("utf-8"),
+                                ("228.0.0.5", 18888))
+        """
 
         print("Datagram %s received from %s" % (datagram, address))
         # data est un dict ou None
         data = datagram_to_dict(datagram)
+
         if data:
-            if "image size" in data:
-                self.disp.img_size = data["image size"]
+            if "image_size" in data:
+                self.disp.img_size = data["image_size"]
                 print("img_size", self.disp.img_size)
+            if "image_pos" in data:
+                self.disp.img_pos = data["image_pos"]
+                print("image_pos", self.disp.img_pos)
+
         sleep(0.01)
 
 
-class MulticastServer(DatagramProtocol):
+class MyTcpClient(Protocol):
 
-    def startProtocol(self):
-        """Called after protocol has started listening."""
+    def __init__(self):
+        self.disp = Display()
+        print("Un protocol client créé")
 
-        # Set the TTL>1 so multicast will cross router hops:
-        self.transport.setTTL(5)
-        # Join a specific multicast group:
-        self.transport.joinGroup("228.0.0.5")
+    def dataReceived(self, data):
 
-    def datagramReceived(self, datagram, address):
-        print("Datagram %s received from %s" % (datagram, address))
-        if datagram == "Client: Ping":
-            # Rather than replying to the group multicast address, we send the
-            # reply directly (unicast) to the originating port:
-            self.transport.write(("Server: Pong").encode("utf-8"), address)
+        print("Data received:", data)
+        # data est un dict ou None
+        data = datagram_to_dict(datagram)
+
+        if data:
+            if "image_size" in data:
+                self.disp.img_size = data["image_size"]
+                print("img_size", self.disp.img_size)
+            if "image_pos" in data:
+                self.disp.img_pos = data["image_pos"]
+                print("image_pos", self.disp.img_pos)
+
+        sleep(0.01)
+
+
+class MyTcpClientFactory(ReconnectingClientFactory):
+
+    def startedConnecting(self, connector):
+        print("Essai de connexion ...")
+
+    def buildProtocol(self, addr):
+        print("Connecté à {}".format(addr))
+        print("Resetting reconnection delay")
+        self.resetDelay()
+        return MyTcpClient()
+
+    def clientConnectionLost(self, connector, reason):
+        print("Lost connection.  Reason:", reason)
+        ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
+
+    def clientConnectionFailed(self, connector, reason):
+        print("Connection failed. Reason:", reason)
+        ReconnectingClientFactory.clientConnectionFailed(self,connector,reason)
 
 
 def datagram_to_dict(data):
@@ -128,39 +181,24 @@ def datagram_to_dict(data):
         return None
 
 
-def run_client():
+def run_multicast_client():
     reactor.listenMulticast(18888, MulticastClient(), listenMultiple=True)
     reactor.run()
 
 
-def run_server():
+def run_tcp_client():
     """
-    We use listenMultiple=True so that we can run MulticastServer.py and
-    MulticastClient.py on same machine.
+    builtins.ValueError: signal only works in main thread
+    http://stackoverflow.com/questions/12917980/non-blocking-server-in-twisted
     """
 
-    reactor.listenMulticast(8005, MulticastServer(), listenMultiple=True)
-    reactor.run()
+    host, port = "192.168.0.105", 8000
+    print("Lancement d'un client host:{} port:{}".format(host, port))
 
-
-def main(opt):
-
-    if opt == "server":
-        run_server()
-
-    if opt == "client":
-        run_client()
-
+    reactor.connectTCP(host, port, MyTcpClientFactory())
+    reactor.run(installSignalHandlers=False)
 
 if __name__ == '__main__':
-    # #run_server()
-    run_client()
 
-    # #print("""\n\nLancement du script avec:
-    # #python3 labmulticasttwisted.py server
-    # #ou
-    # #python3 labmulticasttwisted.py client\n\n
-    # #""")
-
-    # #opt = sys.argv[1]
-    # #main(opt)
+    # #run_multicast_client()
+    run_tcp_client()

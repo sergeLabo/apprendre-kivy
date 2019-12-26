@@ -72,15 +72,27 @@
                     pos: self.pos
                     size: self.size
             Slider:
-                id: un_un
+                id: img_size
                 orientation: "vertical"
-                range: 0, 1
-                value: 0
-                on_value: root.do_slider("un_un", *args)
+                range: 0.2, 1
+                value: 1
+                on_value: root.do_slider("img_size", *args)
 
-        BoxLayout:  # Boite àau centre
-            orientation: 'vertical'
+        BoxLayout:  # Boite au centre
+            orientation: 'horizontal'
             size_hint_x: 0.6
+            Slider:
+                id: position_vert
+                orientation: "vertical"
+                range: 0.2, 1
+                value: 0.2
+                on_value: root.do_slider("pos_vert", *args)
+            Slider:
+                id: position_hori
+                orientation: "horizontal"
+                range: 0.2, 1
+                value: 0.2
+                on_value: root.do_slider("pos_hori", *args)
 
         BoxLayout:  # Boite à droite
             orientation: 'vertical'
