@@ -38,8 +38,8 @@ from time import sleep
 from kivy.support import install_twisted_reactor
 install_twisted_reactor()
 from twisted.internet import reactor
-from twisted.internet.protocol import Protocol, Factory,\
-                                      ClientFactory, DatagramProtocol
+from twisted.internet.protocol import Protocol, Factory, DatagramProtocol
+from twisted.internet.protocol import ReconnectingClientFactory
 
 
 import kivy
@@ -77,27 +77,7 @@ LAN_IP = get_my_LAN_ip()
 print("LAN IP =", LAN_IP)
 
 
-class TCPServer(Protocol):
-
-    def __init__(self):
-        # Boucle
-        self.tictac = Clock.schedule_interval(self.update, 1)  # 0.016)
-
-    def dataReceived(self, data):
-        response = self.factory.app.handle_message(data)
-        if response:
-            self.transport.write(response)
-
-    def update(self, dt):
-        print(dir(self))
-        scr1 = self.app.screen_manager.get_screen("Screen1")
-        data = scr1.create_message()
-        print("Envoi de:", data)
-        self.transport.write(data)
-
-
-class TCPServerFactory(Factory):
-    protocol = TCPServer
+class MyTcpClient(Protocol):
 
     def __init__(self, app):
         """self.app:
@@ -106,8 +86,45 @@ class TCPServerFactory(Factory):
         """
         self.app = app
 
+        # Boucle
+        self.tictac = Clock.schedule_interval(self.update, 1)  # 0.016)
+        print("Un protocol client créé")
 
-class MulticastServer(DatagramProtocol):
+    def update(self, dt):
+        scr1 = self.app.screen_manager.get_screen("Screen1")
+        data = scr1.create_message()
+        print("Envoi de:", data)
+        self.transport.write(data)
+
+
+class MyTcpClientFactory(ReconnectingClientFactory):
+
+    def __init__(self, app):
+        """self.app:
+        Ce mot clé se réferre toujours à l'instance de votre application kivy,
+        soit ApprendreKivyApp()
+        """
+        self.app = app
+
+    def startedConnecting(self, connector):
+        print("Essai de connexion ...")
+
+    def buildProtocol(self, addr):
+        print("Connecté à {}".format(addr))
+        print("Resetting reconnection delay")
+        self.resetDelay()
+        return MyTcpClient(self.app)
+
+    def clientConnectionLost(self, connector, reason):
+        print("Lost connection.  Reason:", reason)
+        ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
+
+    def clientConnectionFailed(self, connector, reason):
+        print("Connection failed. Reason:", reason)
+        ReconnectingClientFactory.clientConnectionFailed(self,connector,reason)
+
+
+class MulticastClient(DatagramProtocol):
     """def datagramReceived(self, datagram, address):
         print("Datagram %s received from %s" % (datagram, address))
         if datagram == "Client: Ping":
@@ -133,8 +150,6 @@ class MulticastServer(DatagramProtocol):
     def startProtocol(self):
         """Called after protocol has started listening."""
 
-        # Set the TTL>1 so multicast will cross router hops:
-        self.transport.setTTL(5)
         # Join a specific multicast group:
         self.transport.joinGroup(self.multi_ip)
 
@@ -257,8 +272,9 @@ class ApprendreKivyApp(App):
             # Multicast
             multi_ip = self.config.get('network', 'multi_ip')
             multi_port = int(self.config.get('network', 'multi_port'))
+            # dans MulticastClient(self, ... self est app !
             reactor.listenMulticast(multi_port,
-                                    MulticastServer(self, multi_ip),
+                                    MulticastClient(self, multi_ip),
                                     listenMultiple=True)
             aaaa = "Multicast server started: ip = {} port = {}"
             print(aaaa.format(multi_ip, multi_port))
@@ -266,14 +282,13 @@ class ApprendreKivyApp(App):
         if self.cast == 'tcp':
             # TCP
             tcp_port = int(self.config.get('network', 'tcp_port'))
-
+            host = self.config.get('network', 'tcp_ip')
             # On appelle:
             # class TCPServerFactory(Factory):
             #     def __init__(self, app):
             #         ....
             # app est en fait le self de cette class ApprendreKivyApp()
-            reactor.listenTCP(tcp_port, TCPServerFactory(self))
-
+            reactor.connectTCP(host, tcp_port, MyTcpClientFactory(self))
             print("TCP server started sur le port {}".format(tcp_port))
 
     def handle_message(self, msg):
@@ -414,49 +429,3 @@ class ApprendreKivyApp(App):
 
 if __name__ == '__main__':
     ApprendreKivyApp().run()
-
-    """
-
-class EchoClient(Protocol):
-    def connectionMade(self):
-        self.factory.app.on_connection(self.transport)
-
-    def dataReceived(self, data):
-        self.factory.app.print_message(data.decode('utf-8'))
-
-
-class EchoClientFactory(ClientFactory):
-    protocol = EchoClient
-
-    def __init__(self, app):
-        self.app = app
-
-    def startedConnecting(self, connector):
-        # #self.app.print_message('Started to connect.')
-        print('Started to connect.')
-
-    def clientConnectionLost(self, connector, reason):
-        # #self.app.print_message('Lost connection.')
-        print('Lost connection.')
-
-    def clientConnectionFailed(self, connector, reason):
-        # #self.app.print_message('Connection failed.')
-        print('Connection failed.')
-
-
-
-TCP
-    # #def on_start(self):
-        # #self.connect_to_server()
-
-    # #def connect_to_server(self):
-        # #reactor.connectTCP('localhost', 8000, EchoClientFactory(self))
-
-    # #def on_connection(self, connection):
-        # #self.print_message("Connected successfully!")
-        # #self.connection = connection
-
-    # #def send_message(self, *args):
-        # #if msg and self.connection:
-            # #self.connection.write(msg.encode('utf-8'))
-"""

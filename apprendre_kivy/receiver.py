@@ -32,8 +32,8 @@ import threading
 import ast
 import numpy as np
 
-from twisted.internet.protocol import Protocol, Factory, DatagramProtocol,\
-                                      ReconnectingClientFactory
+from twisted.internet.protocol import Protocol, Factory, DatagramProtocol
+from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet import reactor
 
 
@@ -44,8 +44,11 @@ class Display:
         self.loop = 1
         self.img_size = 1
         self.img_pos = 10, 10
-        self.thread_image_display()
         self.black_image = np.zeros((1000, 1000, 3), np.uint8)
+
+        # Lancement auto de l'affichage
+        self.thread_image_display()
+
         print("Initialisation de Display done.")
 
     def thread_image_display(self):
@@ -81,21 +84,23 @@ class Display:
         os._exit(0)
 
 
-class MulticastClient(DatagramProtocol):
+class MulticastServer(DatagramProtocol):
 
     def startProtocol(self):
-        # Join the multicast address, so we can receive replies:
+        """Called after protocol has started listening."""
+
+        # Set the TTL>1 so multicast will cross router hops:
+        self.transport.setTTL(5)
+        # Join a specific multicast group:
         self.transport.joinGroup("228.0.0.5")
-        # Send to 228.0.0.5:18888 - all listeners on the multicast address
-        # (including us) will receive this message.
-        self.transport.write(('Client: Ping').encode("utf-8"), ("228.0.0.5", 18888))
-        print("Joined to the multicast")
 
         self.disp = Display()
         print("Init multicast")
 
     def datagramReceived(self, datagram, address):
-        """self.transport.write(('Client: Ping').encode("utf-8"),
+        """Rather than replying to the group multicast address, we send the
+        reply directly (unicast) to the originating port:
+            self.transport.write(('Client: Ping').encode("utf-8"),
                                 ("228.0.0.5", 18888))
         """
 
@@ -114,17 +119,44 @@ class MulticastClient(DatagramProtocol):
         sleep(0.01)
 
 
-class MyTcpClient(Protocol):
+class MyTCPServer(Protocol):
+    """
+    Attribut de class: nb_protocol
+    Un protocol par client connecté,
+    chaque protocol est  une  instance indépendante
+    """
+
+    nb_protocol = 0
 
     def __init__(self):
+        self.message = ""
         self.disp = Display()
-        print("Un protocol client créé")
+        print("Twisted TCP Serveur créé")
+
+    def connectionMade(self):
+        """self.factory was set by the factory"s default buildProtocol
+        self.transport.loseConnection() pour fermer
+        """
+
+        MyTCPServer.nb_protocol += 1
+        print("\nConnexion établie avec un client")
+        print("Nombre de protocol = {}".format(MyTCPServer.nb_protocol))
+
+    def connectionLost(self, reason):
+
+        MyTCPServer.nb_protocol -= 1
+        print("Connexion terminée")
+        print("Nombre de protocol = {}\n".format(MyTCPServer.nb_protocol))
 
     def dataReceived(self, data):
+        """msg = data.decode("utf-8")
+        self.message = msg
+        print("Message reçu: {}".format(msg))
+        """
 
         print("Data received:", data)
         # data est un dict ou None
-        data = datagram_to_dict(datagram)
+        data = datagram_to_dict(data)
 
         if data:
             if "image_size" in data:
@@ -137,24 +169,14 @@ class MyTcpClient(Protocol):
         sleep(0.01)
 
 
-class MyTcpClientFactory(ReconnectingClientFactory):
+class MyTCPServerFactory(Factory):
 
-    def startedConnecting(self, connector):
-        print("Essai de connexion ...")
+    # This will be used by the default buildProtocol to create new protocols:
+    protocol = MyTCPServer
 
-    def buildProtocol(self, addr):
-        print("Connecté à {}".format(addr))
-        print("Resetting reconnection delay")
-        self.resetDelay()
-        return MyTcpClient()
+    def __init__(self, quote=None):
+        print("MyTCPServerFactory créé")
 
-    def clientConnectionLost(self, connector, reason):
-        print("Lost connection.  Reason:", reason)
-        ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
-
-    def clientConnectionFailed(self, connector, reason):
-        print("Connection failed. Reason:", reason)
-        ReconnectingClientFactory.clientConnectionFailed(self,connector,reason)
 
 
 def datagram_to_dict(data):
@@ -181,24 +203,24 @@ def datagram_to_dict(data):
         return None
 
 
-def run_multicast_client():
-    reactor.listenMulticast(18888, MulticastClient(), listenMultiple=True)
+def run_multicast_server():
+    reactor.listenMulticast(18888, MulticastServer(), listenMultiple=True)
     reactor.run()
 
 
-def run_tcp_client():
+def run_tcp_server():
     """
     builtins.ValueError: signal only works in main thread
     http://stackoverflow.com/questions/12917980/non-blocking-server-in-twisted
     """
 
-    host, port = "192.168.0.105", 8000
-    print("Lancement d'un client host:{} port:{}".format(host, port))
+    port = 8000
+    endpoint = TCP4ServerEndpoint(reactor, port)
+    endpoint.listen(MyTCPServerFactory())
+    reactor.run()
 
-    reactor.connectTCP(host, port, MyTcpClientFactory())
-    reactor.run(installSignalHandlers=False)
 
 if __name__ == '__main__':
 
-    # #run_multicast_client()
-    run_tcp_client()
+    # #run_multicast_server()
+    run_tcp_server()
