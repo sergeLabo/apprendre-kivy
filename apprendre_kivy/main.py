@@ -22,12 +22,12 @@
 
 """
 Application avec 2 écrans:
-    - Main: un serveur TCP est lancé, avec 1 menu
-    - Screen1: envoi réception
+    - Main: image, button
+    - Screen1: slider
 """
 
 
-__version__ = '0.001'
+__version__ = '0.06'
 
 
 import os
@@ -87,7 +87,12 @@ class MyTcpClient(Protocol):
         self.app = app
 
         # Boucle
-        self.tictac = Clock.schedule_interval(self.update, 1)  # 0.016)
+        freq = self.app.config('network', 'freq')
+        if freq != 0:
+            self.tempo = 1 / freq
+        else:
+            self.tempo = 1
+        self.tictac = Clock.schedule_interval(self.update, self.tempo)
         print("Un protocol client créé")
 
     def update(self, dt):
@@ -207,10 +212,10 @@ class Screen1(Screen):
             self.img_size = value
 
         if iD == "pos_vert":
-            self.position_vert = value
+            self.pos_vert = value
 
         if iD == "pos_hori":
-            self.position_hori = value
+            self.pos_hori = value
 
     def create_message(self):
         """Le message est un dict, puis json.dumps,
@@ -241,7 +246,7 @@ SCREENS = { 0: (MainScreen, "Main"),
 
 
 class ApprendreKivyApp(App):
-    """Construction de l'application. Exécuté par __main__,
+    """Construction de l'application. Exécuté par if __name__ == '__main__':,
     app est le parent de cette classe dans kv
     """
 
@@ -279,7 +284,7 @@ class ApprendreKivyApp(App):
             aaaa = "Multicast server started: ip = {} port = {}"
             print(aaaa.format(multi_ip, multi_port))
 
-        if self.cast == 'tcp':
+        elif self.cast == 'tcp':
             # TCP
             tcp_port = int(self.config.get('network', 'tcp_port'))
             host = self.config.get('network', 'tcp_ip')
@@ -290,6 +295,14 @@ class ApprendreKivyApp(App):
             # app est en fait le self de cette class ApprendreKivyApp()
             reactor.connectTCP(host, tcp_port, MyTcpClientFactory(self))
             print("TCP server started sur le port {}".format(tcp_port))
+
+        else:
+            # Si erreur de saisie, forcé en multi
+            # TODO revoir la doc si saisie des options contraignable !
+            self.config.set('network', 'cast', 'multi')
+            self.config.write()
+            self.cast = 'multi'
+            self.on_start()
 
     def handle_message(self, msg):
         """Pour le TCP"""
@@ -428,4 +441,13 @@ class ApprendreKivyApp(App):
 
 
 if __name__ == '__main__':
+    """L'application s'appelle apprendrekivy
+    d'où
+    la class
+        ApprendreKivyApp()
+    les fichiers:
+        apprendrekivy.kv
+        apprendrekivy.ini
+    """
+
     ApprendreKivyApp().run()

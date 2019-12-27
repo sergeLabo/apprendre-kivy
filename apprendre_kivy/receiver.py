@@ -43,7 +43,9 @@ class Display:
         self.img = cv2.imread("labo.jpg")
         self.loop = 1
         self.img_size = 1
-        self.img_pos = 10, 10
+        # vert, hori
+        self.img_pos = 0, 0
+        # Image noire du fond = 1000*1000
         self.black_image = np.zeros((1000, 1000, 3), np.uint8)
 
         # Lancement auto de l'affichage
@@ -57,26 +59,34 @@ class Display:
 
     def display(self):
         while self.loop:
+            self.img_copy = self.img.copy()
             # Dimension
-            if self.img_size < 0.2:
-                self.img_size = 0.2
-            self.img = cv2.resize(self.img,
+            if self.img_size < 0.2: self.img_size = 0.2
+            if self.img_size > 1: self.img_size = 1
+            # le logo fait maxi 400*400 sur fond noir 1000*1000
+            self.img_copy = cv2.resize(self.img_copy,
                              (int(self.img_size*400), int(self.img_size*400)),
                              interpolation=cv2.INTER_LINEAR)
-            # Position
+
             black_image = self.black_image.copy()
-            # gray[y1:y2, x1:x2] 162:578
-            # 1440/900 = 1.6
-            # #a = (self.screen[0]/self.screen[1] -1) / 2
-            x1 = int(50*self.img_pos[0])
-            x2 = x1 + self.img.shape[0]
-            y1 = int(50*self.img_pos[1])
-            y2 = y1 + self.img.shape[1]
-            black_image[y1:y2, x1:x2] = self.img
+            # Position
+            if self.img_pos[0] < 0: self.img_pos[0] = 0
+            if self.img_pos[0] > 1: self.img_pos[0] = 1
+            if self.img_pos[1] < 0: self.img_pos[1] = 0
+            if self.img_pos[1] > 1: self.img_pos[1] = 1
+
+            x1 = int(600*self.img_pos[1])  # hori
+            x2 = x1 + self.img_copy.shape[1]
+
+            y1 = int(600*self.img_pos[0])  # vert
+            y2 = y1 + self.img_copy.shape[0]
+
+            # Collage du logo sur le fond
+            black_image[y1:y2, x1:x2] = self.img_copy
 
             cv2.imshow('Image', black_image)
 
-            k = cv2.waitKey(1000)
+            k = cv2.waitKey(1)
             if k == 27:
                 self.loop = 0
         cv2.destroyAllWindows()
@@ -84,7 +94,7 @@ class Display:
         os._exit(0)
 
 
-class MulticastServer(DatagramProtocol):
+class MyMulticastServer(DatagramProtocol):
 
     def startProtocol(self):
         """Called after protocol has started listening."""
@@ -178,7 +188,6 @@ class MyTCPServerFactory(Factory):
         print("MyTCPServerFactory créé")
 
 
-
 def datagram_to_dict(data):
     """Décode le message.
     Retourne un dict ou None
@@ -204,7 +213,7 @@ def datagram_to_dict(data):
 
 
 def run_multicast_server():
-    reactor.listenMulticast(18888, MulticastServer(), listenMultiple=True)
+    reactor.listenMulticast(18888, MyMulticastServer(), listenMultiple=True)
     reactor.run()
 
 
@@ -222,5 +231,5 @@ def run_tcp_server():
 
 if __name__ == '__main__':
 
-    # #run_multicast_server()
-    run_tcp_server()
+    run_multicast_server()
+    # #run_tcp_server()

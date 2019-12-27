@@ -5,6 +5,8 @@
 # divers
 multipong/
 old/
+.buildozer/
+*.apk
 
 # Python test
 *_old.py

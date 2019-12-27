@@ -67,7 +67,7 @@
             size_hint_x: 0.2
             canvas:
                 Color:
-                    rgba: 0.2, 0.4, 0.6, 1
+                    rgb: 0, 1, 0
                 Rectangle:
                     pos: self.pos
                     size: self.size
@@ -81,23 +81,34 @@
         BoxLayout:  # Boite au centre
             orientation: 'horizontal'
             size_hint_x: 0.6
+            canvas:
+                Color:
+                    rgb: 0, 0, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
             Slider:
                 id: position_vert
                 orientation: "vertical"
-                range: 0.2, 1
-                value: 0.2
+                range: 0, 1
+                value: 0
                 on_value: root.do_slider("pos_vert", *args)
             Slider:
                 id: position_hori
                 orientation: "horizontal"
-                range: 0.2, 1
-                value: 0.2
+                range: 0, 1
+                value: 0
                 on_value: root.do_slider("pos_hori", *args)
 
         BoxLayout:  # Boite à droite
             orientation: 'vertical'
             size_hint_x: 0.2
-
+            canvas:
+                Color:
+                    rgb: 1, 0, 0
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
             Label:
                 size_hint_y: 0.84
                 font_size: 20
