@@ -27,14 +27,16 @@ Application avec 2 écrans:
 """
 
 
-__version__ = '0.06'
+__version__ = '0.07'
 
 
+# De la bibliothèque standard, ne pas les ajouter dans buildozer.spec
 import os
 import json
 import socket
 from time import sleep
 
+# Pour twisted
 from kivy.support import install_twisted_reactor
 install_twisted_reactor()
 from twisted.internet import reactor
@@ -42,9 +44,9 @@ from twisted.internet.protocol import Protocol, Factory, DatagramProtocol
 from twisted.internet.protocol import ReconnectingClientFactory
 
 
+# Pour kivy
 import kivy
 kivy.require('1.11.1')
-
 from kivy.core.window import Window
 # Les 3 lignes ci-dessous sont à commenter pour buildozer
 # L'écran de mon tél fait 1280*720
@@ -78,15 +80,18 @@ print("LAN IP =", LAN_IP)
 
 
 class MyTcpClient(Protocol):
+    """Un client TCP seul"""
 
     def __init__(self, app):
         """self.app:
         Ce mot clé se réferre toujours à l'instance de votre application kivy,
         soit ApprendreKivyApp()
+        Permet d'échager avec les autres class.
         """
+
         self.app = app
 
-        # Boucle
+        # Boucle infinie
         freq = self.app.config('network', 'freq')
         if freq != 0:
             self.tempo = 1 / freq
@@ -96,21 +101,31 @@ class MyTcpClient(Protocol):
         print("Un protocol client créé")
 
     def update(self, dt):
+        """Appelé par Clock, donc tourne tout le temps.
+        Va récupérer les valeurs des sliders de Screen1 en utilisant le
+        self.app
+        """
+
         scr1 = self.app.screen_manager.get_screen("Screen1")
         data = scr1.create_message()
-        print("Envoi de:", data)
+        # #print("Envoi de:", data)
         self.transport.write(data)
 
 
 class MyTcpClientFactory(ReconnectingClientFactory):
+    """L'usine de clients TCP avec reconnexion.
+    Un maxDelay existe voir doc twisted
+    """
 
     def __init__(self, app):
         """self.app:
         Ce mot clé se réferre toujours à l'instance de votre application kivy,
         soit ApprendreKivyApp()
+        Permet d'échager avec les autres class.
         """
         self.app = app
 
+    # 4 méthodes pour réaliser les reconnexions
     def startedConnecting(self, connector):
         print("Essai de connexion ...")
 
@@ -130,7 +145,11 @@ class MyTcpClientFactory(ReconnectingClientFactory):
 
 
 class MulticastClient(DatagramProtocol):
-    """def datagramReceived(self, datagram, address):
+    """Avantge du multicast: tout le monde envoie et reçoit sans IP à définir,
+    Inconvénient: charge le routeur
+
+    De la doc:
+    def datagramReceived(self, datagram, address):
         print("Datagram %s received from %s" % (datagram, address))
         if datagram == "Client: Ping":
             # Rather than replying to the group multicast address, we send the
@@ -141,6 +160,7 @@ class MulticastClient(DatagramProtocol):
     def __init__(self, app, multi_ip):
         """self.app:
         Ce mot clé se réferre toujours à l'instance de votre application.
+        Permet d'échager avec les autres class.
         """
         self.app = app
 
@@ -158,13 +178,23 @@ class MulticastClient(DatagramProtocol):
         # Join a specific multicast group:
         self.transport.joinGroup(self.multi_ip)
 
-        # Boucle
-        self.tictac = Clock.schedule_interval(self.update, 1)  # 0.016)
+        # Boucle infinie
+        freq = int(self.app.config.get('network', 'freq'))
+        if freq != 0:
+            self.tempo = 1 / freq
+        else:
+            self.tempo = 1
+        self.tictac = Clock.schedule_interval(self.update, self.tempo)
 
     def update(self, dt):
+        """Appelé par Clock, donc tourne tout le temps.
+        Va récupérer les valeurs des sliders de Screen1 en utilisant le
+        self.app
+        """
+
         scr1 = self.app.screen_manager.get_screen("Screen1")
         data = scr1.create_message()
-        print("Envoi de:", data)
+        # #print("Envoi de:", data)
         self.transport.write(data,self.address)
 
 
@@ -174,32 +204,28 @@ class MainScreen(Screen):
     """
 
     def __init__(self, **kwargs):
-        """Vieux python 2 ! super(MainScreen, self).__init__(**kwargs)
+        """Vieux python 2 !
+        super(MainScreen, self).__init__(**kwargs)
         plus simple en python 3 !
         """
 
         super().__init__(**kwargs)
-
-        # Construit le jeu, le réseau, tourne tout le temps
-        scr_manager = self.get_screen_manager()
         print("Initialisation du Screen MainScreen ok")
-
-    def get_screen_manager(self):
-        return ApprendreKivyApp.get_running_app().screen_manager
 
 
 class Screen1(Screen):
     """root est le parent de cette classe dans la section <Screen1> du kv"""
 
     def __init__(self, **kwargs):
-        """Vieux python 2 ! super(MainScreen, self).__init__(**kwargs)
+        """Vieux python 2 !
+        super(MainScreen, self).__init__(**kwargs)
         plus simple en python 3 !
         """
 
         super().__init__(**kwargs)
         self.img_size = 1
-        self.pos_vert = 1
-        self.pos_hori = 1
+        self.pos_vert = 0
+        self.pos_hori = 0
 
         print("Initialisation du Screen Screen1 ok")
 
@@ -266,6 +292,8 @@ class ApprendreKivyApp(App):
         """Exécuté apres build()
         Pas de reactor.run()
         install_twisted_reactor() du début du script semble le faire !
+
+        Lancement du Multicast ou du TCP
         """
 
         self.cast = self.config.get('network', 'cast')
@@ -304,26 +332,6 @@ class ApprendreKivyApp(App):
             self.cast = 'multi'
             self.on_start()
 
-    def handle_message(self, msg):
-        """Pour le TCP"""
-
-        msg = msg.decode('utf-8')
-        print("received:  {}\n".format(msg))
-
-        if msg == "ping":
-            msg = "Pong"
-        if msg == "plop":
-            msg = "Kivy Rocks!!!"
-        print("responded: {}\n".format(msg))
-        return msg.encode('utf-8')
-
-    def get_slider(self):
-        scr1 = self.screen_manager.get_screen("Screen1")
-        img_size = scr1.img_size
-        data_dict = {"image size": img_size}
-        data = json.dumps(data_dict).encode("utf-8")
-        return data
-
     def build_config(self, config):
         """Excécuté en premier (ou après __init__()).
         Si le fichier *.ini n'existe pas,
@@ -339,7 +347,8 @@ class ApprendreKivyApp(App):
                               'multi_port': 18888,
                               'tcp_port': 8000,
                               'cast': 'multi',
-                              'freq': 60})
+                              'freq': 60,
+                              'tcp_ip': '192.168.0.105'})
 
         config.setdefaults('kivy',
                             { 'log_level': 'debug',
@@ -387,7 +396,12 @@ class ApprendreKivyApp(App):
                     {"type": "numeric",
                       "title": "Fréquence",
                       "desc": "Fréquence entre 1 et 60 Hz",
-                      "section": "network", "key": "freq"}
+                      "section": "network", "key": "freq"},
+
+                    {"type": "string",
+                      "title": "TCP IP",
+                      "desc": "IP = 192.168.0.105",
+                      "section": "network", "key": "tcp_ip"}
                    ]"""
 
         # self.config est le config de build_config
@@ -416,15 +430,10 @@ class ApprendreKivyApp(App):
     def go_mainscreen(self):
         """Retour au menu principal depuis les autres écrans."""
 
-        #if touch.is_double_tap:
+        # TODO Ajouter un bouton de retour
         self.screen_manager.current = ("Main")
 
     def do_quit(self):
-        """
-        # Stop propre de Clock.schedule_interval
-        net = self.screen_manager.get_screen("Screen1")
-        net.tictac.cancel()
-        """
 
         print("Je quitte proprement")
 
@@ -451,3 +460,19 @@ if __name__ == '__main__':
     """
 
     ApprendreKivyApp().run()
+
+# TODO à revoir pour réception
+"""
+    def handle_message(self, msg):
+        '''Pour le TCP'''
+
+        msg = msg.decode('utf-8')
+        print("received:  {}\n".format(msg))
+
+        if msg == "ping":
+            msg = "Pong"
+        if msg == "plop":
+            msg = "Kivy Rocks!!!"
+        print("responded: {}\n".format(msg))
+        return msg.encode('utf-8')
+"""

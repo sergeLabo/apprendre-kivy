@@ -19,13 +19,13 @@
                     source: "labo.jpg"
 
             Label:  # Training Pong
-                text: "Training Pong"
+                text: "Apprendre Kivy"
                 bold: True
                 size_hint_y: 0.1
                 font_size: "48dp"
                 color: (0.5, 0.5, 0, 1)
             Label:  # Pour apprendre Kivy
-                text: "Pour apprendre Kivy"
+                text: "Lancer receiver.py\npour la réception"
                 size_hint_y: 0.8
                 font_size: "36dp"
                 color: (0, 1, 1, 1)
@@ -59,7 +59,7 @@
 
 <Screen1>:
 
-    BoxLayout:
+    BoxLayout:# Une boîte pour tout
         orientation: 'horizontal'
 
         BoxLayout:  # Boite à gauche
@@ -75,7 +75,7 @@
                 id: img_size
                 orientation: "vertical"
                 range: 0.2, 1
-                value: 1
+                value: 0.2
                 on_value: root.do_slider("img_size", *args)
 
         BoxLayout:  # Boite au centre
@@ -112,18 +112,28 @@
             Label:
                 size_hint_y: 0.84
                 font_size: 20
+                color: (0, 1, 1, 1)
+                text: "Quoi ?"
+
+            Button:  # Retour mainscreen
+                size_hint_y: 0.08
+                background_color: (0.8, 0.8, 0.8, 1)
+                text: 'Menu'
+                color: (0, 1, 0, 1)
+                font_size: "22dp"
+                on_release: app.go_mainscreen()
 
             Button:  # Options
                 size_hint_y: 0.08
-                background_color: (0.7, 0.7, 0.7, 1)
+                background_color: (0.6, 0.6, 0.6, 1)
                 text: 'Options'
                 color: (0, 1, 0, 1)
                 font_size: "22dp"
                 on_release: app.open_settings()
 
-            Button:
+            Button:  # Quiiter
                 size_hint_y: 0.08
-                background_color: (0.6, 0.6, 0.6, 1)
+                background_color: (0.4, 0.4, 0.4, 1)
                 text: 'Quitter'
                 color: (0, 1, 0, 1)
                 font_size: "22dp"

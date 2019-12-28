@@ -1,0 +1,48 @@
+<TextureAccessibleWidget>:
+    canvas:
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: 'labo.jpg'
+
+<Receiver>:
+
+    BoxLayout: # une boite pour tout
+        orientation: 'horizontal'
+
+        BoxLayout:  # Boite à gauche
+            id: img_display
+            orientation: 'vertical'
+            size_hint_x: 0.9
+
+            BoxLayout:
+                id: taw_container
+                TextureAccessibleWidget:
+                    id: taw
+                    size_hint: None, None
+
+        BoxLayout:  # Boite à droite
+            orientation: 'vertical'
+            size_hint_x: 0.1
+            canvas:
+                Color:
+                    rgb: 0, 1, 0
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            Button:  # Options
+                size_hint_y: 0.08
+                background_color: (0.6, 0.6, 0.6, 1)
+                text: 'Options'
+                color: (0, 1, 0, 1)
+                font_size: "22dp"
+                on_release: app.open_settings()
+
+            Button:  # Quiiter
+                size_hint_y: 0.08
+                background_color: (0.4, 0.4, 0.4, 1)
+                text: 'Quitter'
+                color: (0, 1, 0, 1)
+                font_size: "22dp"
+                on_release: app.do_quit()
