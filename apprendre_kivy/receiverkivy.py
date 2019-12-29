@@ -39,6 +39,7 @@ from kivy.support import install_twisted_reactor
 install_twisted_reactor()
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, Factory, DatagramProtocol
+from twisted.internet.endpoints import TCP4ServerEndpoint
 
 # Pour kivy
 import kivy
@@ -59,7 +60,7 @@ from kivy.clock import Clock
 # Variable globale:
 # Pour passer des valeurs entre MyMulticastServer et TextureAccessibleWidget
 GLOBAL_DICT = { "image_size": 1,
-                "image_pos": (200, 200),
+                "image_pos": (0, 0),
                 "freq": 1}
 
 
@@ -96,6 +97,10 @@ class MyMulticastServer(DatagramProtocol):
 
             if "image_pos" in data:
                 GLOBAL_DICT["image_pos"] = data["image_pos"]
+        else:
+            GLOBAL_DICT = { "image_size": 1,
+                            "image_pos": (0, 0),
+                            "freq": 1}
 
 
 class MyTCPServer(Protocol):
@@ -107,10 +112,6 @@ class MyTCPServer(Protocol):
 
     global GLOBAL_DICT
     nb_protocol = 0
-
-    def __init__(self):
-        self.message = ""
-        print("Twisted TCP Serveur créé")
 
     def connectionMade(self):
         """self.factory was set by the factory"s default buildProtocol
@@ -128,10 +129,6 @@ class MyTCPServer(Protocol):
         print("Nombre de protocol = {}\n".format(MyTCPServer.nb_protocol))
 
     def dataReceived(self, data):
-        """msg = data.decode("utf-8")
-        self.message = msg
-        print("Message reçu: {}".format(msg))
-        """
 
         global GLOBAL_DICT
 
@@ -145,6 +142,10 @@ class MyTCPServer(Protocol):
 
             if "image_pos" in data:
                 GLOBAL_DICT["image_pos"] = data["image_pos"]
+        else:
+            GLOBAL_DICT = { "image_size": 1,
+                            "image_pos": (0, 0),
+                            "freq": 1}
 
 
 class MyTCPServerFactory(Factory):
@@ -152,7 +153,8 @@ class MyTCPServerFactory(Factory):
     # This will be used by the default buildProtocol to create new protocols:
     protocol = MyTCPServer
 
-    def __init__(self, quote=None):
+    def __init__(self, app, quote=None):
+        self.app = app
         print("MyTCPServerFactory créé")
 
 
@@ -177,23 +179,21 @@ class TextureAccessibleWidget(Widget):
         self.clock_schedule()
 
     def clock_schedule(self):
-        self.event = None
+
         self.freq = GLOBAL_DICT["freq"]
         if self.freq != 0:
             tempo = 1 / self.freq
         else:
             tempo = 1
-        print("Tempo", tempo)
+
         self.event = Clock.schedule_interval(self.update, tempo)
 
     def texture_init(self, *args):
         self.texture = self.canvas.children[-1].texture
 
-        # TODO à améliorer
         self.size_ori = self.texture.size
-        print("Taille de l'image original:", self.texture.size)
-        self.width = self.size_ori[0] * 0.5
-        self.height = self.size_ori[1] * 0.5
+        self.width = self.size_ori[0] * 0.6
+        self.height = self.size_ori[1] * 0.6
 
     def update(self, dt):
 
@@ -202,18 +202,18 @@ class TextureAccessibleWidget(Widget):
         # Si il y a eu changement de fréquence
         freq = GLOBAL_DICT["freq"]
         if freq != self.freq:
+            self.freq = freq
+            print("Fréquence:", freq)
             self.clock_schedule()
-
-        # TODO à améliorer quand tout marchera bien
 
         # Size
         k = GLOBAL_DICT["image_size"]
-        self.width  = self.size_ori[0] * k * 0.8
-        self.height = self.size_ori[1] * k * 0.8
+        self.width  = self.size_ori[0] * k * 0.6
+        self.height = self.size_ori[1] * k * 0.6
 
         # Position
         pos = GLOBAL_DICT["image_pos"]
-        self.pos = (pos[0] * 100, pos[1] * 100)
+        self.pos = (pos[0] * 200, pos[1] * 200)
 
 
 class Receiver(Screen):
@@ -320,13 +320,9 @@ class ReceiverKivyApp(App):
 
         global GLOBAL_DICT
 
-        # Boucle infinie
         freq = int(self.config.get('network', 'freq'))
         GLOBAL_DICT["freq"] = freq
-        if freq != 0:
-            tempo = 1 / freq
-        else:
-            tempo = 1
+        print("Fréquence de réception:", freq)
 
         self.cast = self.config.get('network', 'cast')
         if reactor.running:
@@ -346,8 +342,8 @@ class ReceiverKivyApp(App):
         elif self.cast == 'tcp':
             # TCP
             tcp_port = int(self.config.get('network', 'tcp_port'))
-            host = self.config.get('network', 'tcp_ip')
-            reactor.connectTCP(host, tcp_port, MyTCPServerFactory(self))
+            endpoint = TCP4ServerEndpoint(reactor, tcp_port)
+            endpoint.listen(MyTCPServerFactory(self))
             print("TCP server started sur le port {}".format(tcp_port))
 
         else:

@@ -92,7 +92,7 @@ class MyTcpClient(Protocol):
         self.app = app
 
         # Boucle infinie
-        freq = self.app.config('network', 'freq')
+        freq = int(self.app.config.get('network', 'freq'))
         if freq != 0:
             self.tempo = 1 / freq
         else:
@@ -254,7 +254,7 @@ class Screen1(Screen):
 
         data_dict = {   "kivy_ip": LAN_IP,
                         "image_size": self.img_size,
-                        "image_pos": (self.pos_vert, self.pos_hori)}
+                        "image_pos": (self.pos_hori, self.pos_vert)}
 
         data = json.dumps(data_dict).encode("utf-8")
 
