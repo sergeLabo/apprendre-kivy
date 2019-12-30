@@ -21,7 +21,7 @@
 #######################################################################
 
 """
-Receiver avec kivy
+Server avec kivy
 
 Uniquement pour utilisation sur PC
 
@@ -32,7 +32,7 @@ Inspiré du fichier texture.py de la documention de kivy
 # Import de la bibliothèque standard, ne pas les ajouter dans buildozer.spec
 import os
 import ast
-import socket
+from time import sleep
 
 # Pour twisted
 from kivy.support import install_twisted_reactor
@@ -163,6 +163,8 @@ class TextureAccessibleWidget(Widget):
         self d'ici est <TextureAccessibleWidget> dans le kv
     GLOBAL_DICT est la solution simple trouvée pour échanger entre ici et
     MyMulticastServer
+    classs pas Accessible du tout, puisque j'utilise une variable globale
+    pour les échanges: GLOBAL_DICT
     """
 
     texture = ObjectProperty(None)
@@ -201,6 +203,7 @@ class TextureAccessibleWidget(Widget):
 
         # Si il y a eu changement de fréquence
         freq = GLOBAL_DICT["freq"]
+
         if freq != self.freq:
             self.freq = freq
             print("Fréquence:", freq)
@@ -216,7 +219,7 @@ class TextureAccessibleWidget(Widget):
         self.pos = (pos[0] * 200, pos[1] * 200)
 
 
-class Receiver(Screen):
+class Server(Screen):
     """Le seul écran défini dans le kv"""
 
     def __init__(self, app, **kwargs):
@@ -225,7 +228,7 @@ class Receiver(Screen):
         self.app = app
 
 
-class ReceiverKivyApp(App):
+class ServerKivyApp(App):
     """Pas de __init__() dans cette class ...App"""
 
     global GLOBAL_DICT
@@ -234,7 +237,7 @@ class ReceiverKivyApp(App):
         """Exécuté après build_config, construit l' écran
         Le self d'ici est le self.app des autres class"""
 
-        return Receiver(self)
+        return Server(self)
 
     def build_config(self, config):
         """Excécuté en premier.
@@ -311,7 +314,7 @@ class ReceiverKivyApp(App):
                    ]"""
 
         # self.config est le config de build_config
-        settings.add_json_panel('ReceiverKivy', self.config, data=data)
+        settings.add_json_panel('ServerKivy', self.config, data=data)
 
     def on_start(self):
         """Exécuté apres build()
@@ -323,11 +326,7 @@ class ReceiverKivyApp(App):
         freq = int(self.config.get('network', 'freq'))
         GLOBAL_DICT["freq"] = freq
         print("Fréquence de réception:", freq)
-
         self.cast = self.config.get('network', 'cast')
-        if reactor.running:
-            reactor.stop()
-            sleep(1)
 
         if self.cast == 'multi':
             # Multicast
@@ -344,6 +343,7 @@ class ReceiverKivyApp(App):
             tcp_port = int(self.config.get('network', 'tcp_port'))
             endpoint = TCP4ServerEndpoint(reactor, tcp_port)
             endpoint.listen(MyTCPServerFactory(self))
+            print(dir(endpoint))
             print("TCP server started sur le port {}".format(tcp_port))
 
         else:
@@ -365,6 +365,14 @@ class ReceiverKivyApp(App):
             if token == ('network', 'freq'):
                 GLOBAL_DICT["freq"] = int(token[1])
 
+            # Cast
+            if token == ('network', 'cast'):
+                print("Nouveau réseau:", value)
+                self.cast = value
+                # relance du réseau
+                # TODO BUG les 2 réseaux vont tourner ensemble
+                self.on_start()
+
     def do_quit(self):
 
         print("Je quitte proprement")
@@ -374,7 +382,7 @@ class ReceiverKivyApp(App):
             reactor.stop()
 
         # Kivy
-        ReceiverKivyApp.get_running_app().stop()
+        ServerKivyApp.get_running_app().stop()
 
         # Extinction forcée de tout, si besoin
         os._exit(0)
@@ -407,4 +415,4 @@ def datagram_to_dict(data):
 
 if __name__ == '__main__':
 
-    ReceiverKivyApp().run()
+    ServerKivyApp().run()

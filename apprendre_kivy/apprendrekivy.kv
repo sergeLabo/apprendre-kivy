@@ -18,17 +18,17 @@
                     size: self.size
                     source: "labo.jpg"
 
-            Label:  # Training Pong
-                text: "Apprendre Kivy"
+            Label:  # Apprendre Kivy
+                text: root.titre
                 bold: True
                 size_hint_y: 0.1
                 font_size: "48dp"
                 color: (0.5, 0.5, 0, 1)
             Label:  # Pour apprendre Kivy
-                text: "Lancer receiver.py\npour la réception"
+                text: "Lancer\nserverkivy.py\npour la réception"
                 size_hint_y: 0.8
                 font_size: "36dp"
-                color: (0, 1, 1, 1)
+                color: (0, 1, 0, 1)
             Label:  # accents
                 text: "àùéèîôûê@ àùéèîôûê@"
                 size_hint_y: 0.1
@@ -58,7 +58,6 @@
                 on_release: app.do_quit()
 
 <Screen1>:
-
     BoxLayout:# Une boîte pour tout
         orientation: 'horizontal'
 
@@ -99,6 +98,78 @@
                 range: 0, 1
                 value: 0
                 on_value: root.do_slider("pos_hori", *args)
+
+        BoxLayout:  # Boite à droite
+            orientation: 'vertical'
+            size_hint_x: 0.2
+            canvas:
+                Color:
+                    rgb: 1, 0, 0
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Label:
+                size_hint_y: 0.84
+                font_size: 20
+                color: (0, 1, 1, 1)
+                text: "Quoi ?"
+
+            Button:  # Ecran 2
+                size_hint_y: 0.08
+                background_color: (0.8, 0.8, 0.8, 1)
+                text: 'Touch'
+                color: (0, 1, 0, 1)
+                font_size: "22dp"
+                on_release: app.root.current = "Screen2"
+
+            Button:  # Retour mainscreen
+                size_hint_y: 0.08
+                background_color: (0.6, 0.6, 0.6, 1)
+                text: 'Menu'
+                color: (0, 1, 0, 1)
+                font_size: "22dp"
+                on_release: app.go_mainscreen()
+
+            Button:  # Options
+                size_hint_y: 0.08
+                background_color: (0.4, 0.4, 0.4, 1)
+                text: 'Options'
+                color: (0, 1, 0, 1)
+                font_size: "22dp"
+                on_release: app.open_settings()
+
+            Button:  # Quiiter
+                size_hint_y: 0.08
+                background_color: (0.2, 0.2, 0.2, 1)
+                text: 'Quitter'
+                color: (0, 1, 0, 1)
+                font_size: "22dp"
+                on_release: app.do_quit()
+
+<Paddle>:
+    size_hint: None, None
+    size: 200, 200
+    canvas:
+        Color:
+            rgb: 0.5, 1, 0.5
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<Screen2>:
+    BoxLayout:# Une boîte pour tout
+        orientation: 'horizontal'
+
+        BoxLayout:  # Boite à gauche
+            orientation: 'vertical'
+            size_hint_x: 0.8
+            RelativeLayout:
+                id: paddle
+                size_hint: None, None
+                Paddle:
+                    # #center: self.center
+                    pos: self.pos
+                    size: self.size
 
         BoxLayout:  # Boite à droite
             orientation: 'vertical'

@@ -27,8 +27,12 @@ Application avec 2 écrans:
 """
 
 
-__version__ = '0.07'
+__version__ = '0.15'
 
+# 0.15 dernière vérif avant push
+# 0.14 self.center_x et y
+# 0.12 ajout de center_x: root.center_x et y --> bad
+# 0.11 ok mais centre mauvais
 
 # De la bibliothèque standard, ne pas les ajouter dans buildozer.spec
 import os
@@ -56,13 +60,11 @@ from kivy.core.window import Window
 
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
-from kivy.uix.widget import Widget
-from kivy.properties import  NumericProperty, ReferenceListProperty,\
-                             ObjectProperty, BooleanProperty,\
-                             ListProperty
-from kivy.vector import Vector
 from kivy.clock import Clock
-
+from kivy.uix.widget import Widget
+from kivy.properties import StringProperty, ListProperty, NumericProperty
+# Pour appliquer le multitouch
+from kivy.uix.scatter import Scatter
 
 # Récupération de l'ip locale pour l'envoyer à tous les clients en multicast
 def get_my_LAN_ip():
@@ -147,14 +149,6 @@ class MyTcpClientFactory(ReconnectingClientFactory):
 class MulticastClient(DatagramProtocol):
     """Avantge du multicast: tout le monde envoie et reçoit sans IP à définir,
     Inconvénient: charge le routeur
-
-    De la doc:
-    def datagramReceived(self, datagram, address):
-        print("Datagram %s received from %s" % (datagram, address))
-        if datagram == "Client: Ping":
-            # Rather than replying to the group multicast address, we send the
-            # reply directly (unicast) to the originating port:
-            self.transport.write(("Server: Pong").encode("utf-8"), address)
         """
 
     def __init__(self, app, multi_ip):
@@ -203,13 +197,13 @@ class MainScreen(Screen):
     root est le parent de cette classe dans la section <MainScreen> du kv
     """
 
+    # Attribut de class, obligatoire, utilisé dans kv avec root.titre
+    titre = StringProperty("toto")
+
     def __init__(self, **kwargs):
-        """Vieux python 2 !
-        super(MainScreen, self).__init__(**kwargs)
-        plus simple en python 3 !
-        """
 
         super().__init__(**kwargs)
+        self.titre = "Apprendre Kivy"
         print("Initialisation du Screen MainScreen ok")
 
 
@@ -217,10 +211,6 @@ class Screen1(Screen):
     """root est le parent de cette classe dans la section <Screen1> du kv"""
 
     def __init__(self, **kwargs):
-        """Vieux python 2 !
-        super(MainScreen, self).__init__(**kwargs)
-        plus simple en python 3 !
-        """
 
         super().__init__(**kwargs)
         self.img_size = 1
@@ -261,6 +251,22 @@ class Screen1(Screen):
         return data
 
 
+class Paddle(Scatter):
+    """do_scale est fait par Scatter"""
+
+    pass
+
+    # #def __init__(self, **kwargs):
+        # #super().__init__(**kwargs)
+        # ## self.bbox = ((0.0, 0.0), (100.0, 100.0))
+
+class Screen2(Screen):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        print("Initialisation du Screen Screen2 ok")
+
+
 """
 Variable globale qui définit les écrans
 L'écran de configuration est toujours créé par défaut
@@ -268,7 +274,8 @@ Il suffit de créer un bouton d'accès
 Les class appelées (MainScreen, Screen1) sont placées avant
 """
 SCREENS = { 0: (MainScreen, "Main"),
-            1: (Screen1, "Screen1")}
+            1: (Screen1, "Screen1"),
+            2: (Screen2, "Screen2")}
 
 
 class ApprendreKivyApp(App):
@@ -286,6 +293,9 @@ class ApprendreKivyApp(App):
             # self.screen_manager.add_widget(MainScreen(name="Main"))
             self.screen_manager.add_widget(SCREENS[i][0](name=SCREENS[i][1]))
 
+        # écran2 direct pour test
+        self.screen_manager.current = ("Screen2")
+
         return self.screen_manager
 
     def on_start(self):
@@ -297,9 +307,10 @@ class ApprendreKivyApp(App):
         """
 
         self.cast = self.config.get('network', 'cast')
-        if reactor.running:
-            reactor.stop()
-            sleep(1)
+
+        # #if reactor.running:
+            # #reactor.stop()
+            # #sleep(1)
 
         if self.cast == 'multi':
             # Multicast
@@ -309,7 +320,7 @@ class ApprendreKivyApp(App):
             reactor.listenMulticast(multi_port,
                                     MulticastClient(self, multi_ip),
                                     listenMultiple=True)
-            aaaa = "Multicast server started: ip = {} port = {}"
+            aaaa = "Multicast client started: ip = {} port = {}"
             print(aaaa.format(multi_ip, multi_port))
 
         elif self.cast == 'tcp':
@@ -425,12 +436,13 @@ class ApprendreKivyApp(App):
                 print("Nouveau réseau:", value)
                 self.cast = value
                 # relance du réseau
+                # TODO BUG les 2 réseaux vont tourner ensemble
                 self.on_start()
 
     def go_mainscreen(self):
         """Retour au menu principal depuis les autres écrans."""
 
-        # TODO Ajouter un bouton de retour
+        # TODO Ajouter un bouton de retour 1 depuis 2 et adapter
         self.screen_manager.current = ("Main")
 
     def do_quit(self):
@@ -460,19 +472,3 @@ if __name__ == '__main__':
     """
 
     ApprendreKivyApp().run()
-
-# TODO à revoir pour réception
-"""
-    def handle_message(self, msg):
-        '''Pour le TCP'''
-
-        msg = msg.decode('utf-8')
-        print("received:  {}\n".format(msg))
-
-        if msg == "ping":
-            msg = "Pong"
-        if msg == "plop":
-            msg = "Kivy Rocks!!!"
-        print("responded: {}\n".format(msg))
-        return msg.encode('utf-8')
-"""
