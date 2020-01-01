@@ -138,7 +138,7 @@
                 font_size: "22dp"
                 on_release: app.open_settings()
 
-            Button:  # Quiiter
+            Button:  # Quitter
                 size_hint_y: 0.08
                 background_color: (0.2, 0.2, 0.2, 1)
                 text: 'Quitter'
@@ -154,8 +154,6 @@
     Image:
         id: image
         source: root.source
-        # create initial image to be 400 pixels width
-        # #size: root.taille, root.taille / self.image_ratio
         size: 400, 400 / self.image_ratio
 
 <Screen2>:

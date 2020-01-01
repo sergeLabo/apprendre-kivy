@@ -45,6 +45,7 @@ from random import randint
 from os.path import join, dirname
 
 # Pour twisted
+# ajouter twisted dans les requirements de buildozer.spec
 from kivy.support import install_twisted_reactor
 install_twisted_reactor()
 from twisted.internet import reactor
@@ -52,6 +53,7 @@ from twisted.internet.protocol import Protocol, Factory, DatagramProtocol
 from twisted.internet.protocol import ReconnectingClientFactory
 
 # Pour kivy
+# ajouter kivy dans les requirements de buildozer.spec
 import kivy
 kivy.require('1.11.1')
 
@@ -71,29 +73,15 @@ from kivy.properties import StringProperty, ListProperty, NumericProperty
 from kivy.uix.scatter import Scatter
 from kivy.logger import Logger
 
-# Récupération de l'ip locale pour l'envoyer à tous les clients en multicast
-def get_my_LAN_ip():
-    try:
-        sok = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sok.connect(("8.8.8.8", 80))
-        ip = sok.getsockname()[0]
-        sok.close()
-    except:
-        ip = "127.0.0.1"
-    return ip
-
-LAN_IP = get_my_LAN_ip()
-print("LAN IP =", LAN_IP)
-
 
 class MyTcpClient(Protocol):
     """Un client TCP seul"""
 
     def __init__(self, app):
-        """self.app:
+        """app:
         Ce mot clé se réferre toujours à l'instance de votre application kivy,
         soit ApprendreKivyApp()
-        Permet d'échager avec les autres class.
+        Permet d'échanger avec les autres class.
         """
 
         self.app = app
@@ -153,7 +141,7 @@ class MyTcpClientFactory(ReconnectingClientFactory):
 class MulticastClient(DatagramProtocol):
     """Avantge du multicast: tout le monde envoie et reçoit sans IP à définir,
     Inconvénient: charge le routeur
-        """
+    """
 
     def __init__(self, app, multi_ip):
         """self.app:
@@ -232,6 +220,7 @@ class Screen1(Screen):
         print("slider", iD, value)
 
         if iD == "img_size":
+            # Le slider dans kv à l'id: img_size
             self.img_size = value
 
         if iD == "pos_vert":
@@ -242,11 +231,8 @@ class Screen1(Screen):
 
     def create_message(self):
         """Le message est un dict, puis json.dumps,
-        puis encode pour avoir des bytes
-        dict avec keys:
-                "kivy ip": "228.0.0.5"
-                "image size": 1.0
-                "image position": (100, 200)
+        puis encode pour avoir des bytes.
+        Dans cet écran, des coefficients sont envoyés, et non des pixels.
         """
 
         data_dict = {   "ip": LAN_IP,
@@ -260,11 +246,17 @@ class Screen1(Screen):
 
 
 class Picture(Scatter):
+    """Scatter capture et applique le tactile"""
 
+    # Le kv appelle cet attribut avec root.source
+    # C'est un attribut de class, obligatoire pour être appelé
     source = StringProperty(None)
 
 
 class Screen2(Screen):
+    """Déplacement, resize, rotation d'une image avec le tactile
+    La class du kv de cette class appelle Picture(Scatter)
+    """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -273,7 +265,7 @@ class Screen2(Screen):
         # Toules les images chargées dans un dict
         self.pictures = {}
 
-        # get any files into images directory
+        # Get any files into images directory
         curdir = dirname(__file__)
         n = 0
         for filename in glob(join(curdir, 'images', '*')):
@@ -288,31 +280,29 @@ class Screen2(Screen):
                 n += 1
 
             except Exception as e:
-                Logger.exception('Pictures: Unable to load', filename)
+                Logger.exception('Pictures: Unable to load {}'.format(filename))
 
     def create_message(self):
-        """Rajouter des tests sur existance des valeurs !!!"""
 
-        img_scale = self.pictures[0].scale
-        image_size = (  self.pictures[0].width * img_scale,
-                        self.pictures[0].height * img_scale )
+        if self.pictures[0]:
+            img_scale = self.pictures[0].scale
+            image_size = (  self.pictures[0].width * img_scale,
+                            self.pictures[0].height * img_scale )
 
-        pos_hori, pos_vert = (  self.pictures[0].pos[0],
-                                self.pictures[0].pos[1])
+            pos_hori, pos_vert = (  self.pictures[0].pos[0],
+                                    self.pictures[0].pos[1])
 
-        angle = self.pictures[0].rotation
-
-        print(  "image_size:", image_size,
-                "pos:", pos_hori, pos_vert,
-                "angle", angle )
+            angle = self.pictures[0].rotation
 
         data_dict = {   "unit": "pixel",
                         "image_size": image_size,
                         "image_pos": (pos_hori, pos_vert),
                         "angle": angle}
 
-        return json.dumps(data_dict).encode("utf-8")
+        else:
+            data_dict = {}
 
+        return json.dumps(data_dict).encode("utf-8")
 
 
 # Variable globale qui définit les écrans
@@ -340,7 +330,7 @@ class ApprendreKivyApp(App):
             self.screen_manager.add_widget(SCREENS[i][0](name=SCREENS[i][1]))
 
         # écran2 direct pour test
-        self.screen_manager.current = ("Screen2")
+        # self.screen_manager.current = ("Screen2")
 
         return self.screen_manager
 
@@ -354,36 +344,34 @@ class ApprendreKivyApp(App):
 
         self.cast = self.config.get('network', 'cast')
 
-        # #if reactor.running:
-            # #reactor.stop()
-            # #sleep(1)
+        # le reactor tourne en continu, il ne faut pas l'arrêter
 
         if self.cast == 'multi':
             # Multicast
-            multi_ip = self.config.get('network', 'multi_ip')
-            multi_port = int(self.config.get('network', 'multi_port'))
-            # dans MulticastClient(self, ... self est app !
+            self.multi_ip = self.config.get('network', 'multi_ip')
+            self.multi_port = int(self.config.get('network', 'multi_port'))
+            # Le self d'ici est app de MulticastClient(self, app, ... 
             reactor.listenMulticast(multi_port,
-                                    MulticastClient(self, multi_ip),
+                                    MulticastClient(self, self.multi_ip),
                                     listenMultiple=True)
             aaaa = "Multicast client started: ip = {} port = {}"
-            print(aaaa.format(multi_ip, multi_port))
+            print(aaaa.format(self.multi_ip, self.multi_port))
 
         elif self.cast == 'tcp':
             # TCP
-            tcp_port = int(self.config.get('network', 'tcp_port'))
-            host = self.config.get('network', 'tcp_ip')
+            self.tcp_port = int(self.config.get('network', 'tcp_port'))
+            self.tcp_ip = self.config.get('network', 'tcp_ip')
             # On appelle:
             # class TCPServerFactory(Factory):
             #     def __init__(self, app):
             #         ....
             # app est en fait le self de cette class ApprendreKivyApp()
-            reactor.connectTCP(host, tcp_port, MyTcpClientFactory(self))
-            print("TCP server started sur le port {}".format(tcp_port))
+            reactor.connectTCP(self.tcp_ip, self.tcp_port, MyTcpClientFactory(self))
+            print("TCP Client started ip: {} port: {}".format(self.tcp_ip,
+                                                              self.tcp_port))
 
         else:
             # Si erreur de saisie, forcé en multi
-            # TODO revoir la doc si saisie des options contraignable !
             self.config.set('network', 'cast', 'multi')
             self.config.write()
             self.cast = 'multi'
@@ -485,10 +473,29 @@ class ApprendreKivyApp(App):
                 # TODO BUG les 2 réseaux vont tourner ensemble
                 self.on_start()
 
+            # multi_ip = 228.0.0.5
+            if token == ('network', 'multi_ip'):
+                print("multi_ip", value)
+                self.multi_ip = value
+
+            # multi_port = 18888
+            if token == ('network', 'multi_port'):
+                print("multi_port", value)
+                self.multi_port = value
+
+            # tcp_port = 8000
+            if token == ('network', 'tcp_port'):
+                print("tcp_port", value)
+                self.tcp_port = value
+
+            # tcp_ip = 192.168.0.105
+            if token == ('network', 'tcp_ip'):
+                print("tcp_ip", value)
+                self.tcp_ip = value
+
     def go_mainscreen(self):
         """Retour au menu principal depuis les autres écrans."""
 
-        # TODO Ajouter un bouton de retour 1 depuis 2 et adapter
         self.screen_manager.current = ("Main")
 
     def do_quit(self):
@@ -504,6 +511,21 @@ class ApprendreKivyApp(App):
 
         # Extinction forcée de tout, si besoin
         os._exit(0)
+
+
+# Récupération de l'ip locale pour l'envoyer à tous les clients en multicast
+def get_my_LAN_ip():
+    try:
+        sok = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sok.connect(("8.8.8.8", 80))
+        ip = sok.getsockname()[0]
+        sok.close()
+    except:
+        ip = "127.0.0.1"
+    return ip
+
+LAN_IP = get_my_LAN_ip()
+print("LAN IP =", LAN_IP)
 
 
 if __name__ == '__main__':
