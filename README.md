@@ -1,5 +1,7 @@
 # Apprendre Kivy
 
+## Un cas concret pour apprendre
+
 ### Comment créer une application Android en Python avec Kivy
 
 * [Kivy](https://kivy.org/doc/stable/)
@@ -37,6 +39,6 @@ or (at your option) any later version.
 More in file License GPL V3.
 
 
-### Merci à:
+### Merci à
 
 * [Labomedia](https://labomedia.org/)

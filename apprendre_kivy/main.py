@@ -21,9 +21,10 @@
 #######################################################################
 
 """
-Application avec 2 écrans:
+Application avec 3 écrans:
     - Main: image, button
     - Screen1: slider
+    - Screen2: Scatter qui gère le tactile
 """
 
 
@@ -33,16 +34,6 @@ __version__ = '0.24'
 # 0.23 correction img_scale
 # 0.22 width au lieu de size sur écran 2
 # 0.21 test avec self.pictures --> ok
-# 0.20 suppr de taille = NumericProperty(200)
-# 0.19 recherche img_size = self.children[0].size[0]/200
-# 0.18 avec code de pictures ok
-# 0.17 sans paddle_pos, avec self.pos = [touch.pos[0] - paddle_size[0]/2,
-#   mais scatter ne marche pas
-# 0.16 self.paddle_pos = [touch.pos[0] * 0.5 - 50,
-# 0.15 dernière vérif avant push
-# 0.14 self.center_x et y
-# 0.12 ajout de center_x: root.center_x et y --> bad
-# 0.11 ok mais centre mauvais
 
 # De la bibliothèque standard, ne pas les ajouter dans buildozer.spec
 import os
@@ -124,7 +115,6 @@ class MyTcpClient(Protocol):
 
         scr1 = self.app.screen_manager.get_screen("Screen1")
         data = scr1.create_message()
-        # #print("Envoi de:", data)
         self.transport.write(data)
 
 
@@ -324,12 +314,11 @@ class Screen2(Screen):
         return json.dumps(data_dict).encode("utf-8")
 
 
-"""
-Variable globale qui définit les écrans
-L'écran de configuration est toujours créé par défaut
-Il suffit de créer un bouton d'accès
-Les class appelées (MainScreen, Screen1) sont placées avant
-"""
+
+# Variable globale qui définit les écrans
+# L'écran de configuration est toujours créé par défaut
+# Il suffit de créer un bouton d'accès
+# Les class appelées (MainScreen, Screen1) sont placées avant
 SCREENS = { 0: (MainScreen, "Main"),
             1: (Screen1, "Screen1"),
             2: (Screen2, "Screen2")}
