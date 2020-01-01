@@ -46,6 +46,7 @@ import kivy
 kivy.require('1.11.1')
 from kivy.core.window import Window
 
+# Adapter en fonction du téléphone d'envoi
 k = 1.0
 WS = (int(1280*k), int(720*k))
 Window.size = WS
@@ -53,15 +54,13 @@ Window.size = WS
 from kivy.app import App
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
-from kivy.properties import ObjectProperty
+from kivy.properties import ObjectProperty, NumericProperty
 from kivy.clock import Clock
 
 
 # Variable globale:
 # Pour passer des valeurs entre MyMulticastServer et TextureAccessibleWidget
-GLOBAL_DICT = { "image_size": 1,
-                "image_pos": (0, 0),
-                "freq": 1}
+GLOBAL_DICT = {}
 
 
 class MyMulticastServer(DatagramProtocol):
@@ -87,20 +86,11 @@ class MyMulticastServer(DatagramProtocol):
 
         global GLOBAL_DICT
 
-        # #print("Datagram %s received from %s" % (datagram, address))
         # data est un dict ou None
         data = datagram_to_dict(datagram)
 
-        if data:
-            if "image_size" in data:
-                GLOBAL_DICT["image_size"] = data["image_size"]
-
-            if "image_pos" in data:
-                GLOBAL_DICT["image_pos"] = data["image_pos"]
-        else:
-            GLOBAL_DICT = { "image_size": 1,
-                            "image_pos": (0, 0),
-                            "freq": 1}
+        # Apply des data à GLOBAL_DICT
+        GLOBAL_DICT = data_to_global_dict(data)
 
 
 class MyTCPServer(Protocol):
@@ -132,20 +122,11 @@ class MyTCPServer(Protocol):
 
         global GLOBAL_DICT
 
-        # #print("Data received:", data)
         # data est un dict ou None
         data = datagram_to_dict(data)
 
-        if data:
-            if "image_size" in data:
-                GLOBAL_DICT["image_size"] = data["image_size"]
-
-            if "image_pos" in data:
-                GLOBAL_DICT["image_pos"] = data["image_pos"]
-        else:
-            GLOBAL_DICT = { "image_size": 1,
-                            "image_pos": (0, 0),
-                            "freq": 1}
+        # Apply des data à GLOBAL_DICT
+        GLOBAL_DICT = data_to_global_dict(data)
 
 
 class MyTCPServerFactory(Factory):
@@ -161,13 +142,14 @@ class MyTCPServerFactory(Factory):
 class TextureAccessibleWidget(Widget):
     """class appelé uniquement par le kv
         self d'ici est <TextureAccessibleWidget> dans le kv
+
     GLOBAL_DICT est la solution simple trouvée pour échanger entre ici et
     MyMulticastServer
-    classs pas Accessible du tout, puisque j'utilise une variable globale
-    pour les échanges: GLOBAL_DICT
     """
 
     texture = ObjectProperty(None)
+    angle = NumericProperty(10)
+
     global GLOBAL_DICT
 
     def __init__(self, **kwargs):
@@ -181,8 +163,11 @@ class TextureAccessibleWidget(Widget):
         self.clock_schedule()
 
     def clock_schedule(self):
+        if "freq" in GLOBAL_DICT:
+            self.freq = GLOBAL_DICT["freq"]
+        else:
+            self.freq = 1
 
-        self.freq = GLOBAL_DICT["freq"]
         if self.freq != 0:
             tempo = 1 / self.freq
         else:
@@ -191,32 +176,70 @@ class TextureAccessibleWidget(Widget):
         self.event = Clock.schedule_interval(self.update, tempo)
 
     def texture_init(self, *args):
-        self.texture = self.canvas.children[-1].texture
+        """La recupération de la texture est tirée par les cheveux:
+        ça marche, mais on peut certainement faire mieux.
+        """
 
+        print("self.canvas.children =", self.canvas.children)
+        self.texture = self.canvas.children[-2].texture
+
+        # Valeurs de départ
         self.size_ori = self.texture.size
-        self.width = self.size_ori[0] * 0.6
-        self.height = self.size_ori[1] * 0.6
+        self.width = self.size_ori[0] * 0.2
+        self.height = self.size_ori[1] * 0.2
 
     def update(self, dt):
 
         global GLOBAL_DICT
 
         # Si il y a eu changement de fréquence
-        freq = GLOBAL_DICT["freq"]
-
+        # Cette class n'est pas accessible avec self.app,
+        # je passe par le GLOBAL_DICT
+        if "freq" in GLOBAL_DICT:
+            freq = GLOBAL_DICT["freq"]
+        else:
+            freq = self.freq
         if freq != self.freq:
             self.freq = freq
             print("Fréquence:", freq)
             self.clock_schedule()
 
-        # Size
-        k = GLOBAL_DICT["image_size"]
-        self.width  = self.size_ori[0] * k * 0.6
-        self.height = self.size_ori[1] * k * 0.6
+        # Unité
+        if "unit" in GLOBAL_DICT:
+            unit = GLOBAL_DICT["unit"]
+        else:
+            unit = None
 
-        # Position
-        pos = GLOBAL_DICT["image_pos"]
-        self.pos = (pos[0] * 200, pos[1] * 200)
+        # Size Obtenu avec écran 2
+        if unit == "pixel":
+            # Size
+            if "image_size" in GLOBAL_DICT:
+                size = GLOBAL_DICT["image_size"]
+                self.width  = size[0]
+                self.height = size[1]
+
+            # Position
+            if "image_pos" in GLOBAL_DICT:
+                pos = GLOBAL_DICT["image_pos"]
+                self.pos = (pos[0], pos[1])
+
+            # Orientation
+            if "angle" in GLOBAL_DICT:
+                self.angle = GLOBAL_DICT["angle"]
+
+            print(self.angle)
+
+        # Obtenu avec écran 1
+        if unit == "coeff":
+            # Size
+            if "image_size" in GLOBAL_DICT:
+                k = GLOBAL_DICT["image_size"]
+                self.width  = self.size_ori[0] * k * 0.6
+                self.height = self.size_ori[1] * k * 0.6
+            # Position
+            if "image_pos" in GLOBAL_DICT:
+                pos = GLOBAL_DICT["image_pos"]
+                self.pos = (pos[0] * 200, pos[1] * 200)
 
 
 class Server(Screen):
@@ -343,7 +366,6 @@ class ServerKivyApp(App):
             tcp_port = int(self.config.get('network', 'tcp_port'))
             endpoint = TCP4ServerEndpoint(reactor, tcp_port)
             endpoint.listen(MyTCPServerFactory(self))
-            print(dir(endpoint))
             print("TCP server started sur le port {}".format(tcp_port))
 
         else:
@@ -411,6 +433,36 @@ def datagram_to_dict(data):
     else:
         print("Message reçu: None")
         return None
+
+
+def data_to_global_dict(data):
+    global_dict = {}
+    # TODO mettre pour TCP également
+    if data:
+        if "image_size" in data:
+            global_dict["image_size"] = data["image_size"]
+
+        if "image_pos" in data:
+            global_dict["image_pos"] = data["image_pos"]
+
+        if "unit" in data:
+            global_dict["unit"] = data["unit"]
+
+        if "angle" in data:
+            global_dict["angle"] = data["angle"]
+
+        if "ip" in data:
+            global_dict[""] = data["ip"]
+
+    else:
+        global_dict = { "image_size": 1,
+                        "image_pos": (0, 0),
+                        "freq": 1,
+                        "unit": "pixel",
+                        "angle": 0,
+                        "ip": "127.0.0.1"}
+
+    return global_dict
 
 
 if __name__ == '__main__':

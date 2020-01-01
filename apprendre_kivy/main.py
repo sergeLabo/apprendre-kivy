@@ -27,8 +27,18 @@ Application avec 2 écrans:
 """
 
 
-__version__ = '0.15'
+__version__ = '0.24'
 
+# 0.24 avec rotation
+# 0.23 correction img_scale
+# 0.22 width au lieu de size sur écran 2
+# 0.21 test avec self.pictures --> ok
+# 0.20 suppr de taille = NumericProperty(200)
+# 0.19 recherche img_size = self.children[0].size[0]/200
+# 0.18 avec code de pictures ok
+# 0.17 sans paddle_pos, avec self.pos = [touch.pos[0] - paddle_size[0]/2,
+#   mais scatter ne marche pas
+# 0.16 self.paddle_pos = [touch.pos[0] * 0.5 - 50,
 # 0.15 dernière vérif avant push
 # 0.14 self.center_x et y
 # 0.12 ajout de center_x: root.center_x et y --> bad
@@ -39,6 +49,9 @@ import os
 import json
 import socket
 from time import sleep
+from glob import glob
+from random import randint
+from os.path import join, dirname
 
 # Pour twisted
 from kivy.support import install_twisted_reactor
@@ -47,11 +60,11 @@ from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, Factory, DatagramProtocol
 from twisted.internet.protocol import ReconnectingClientFactory
 
-
 # Pour kivy
 import kivy
 kivy.require('1.11.1')
-from kivy.core.window import Window
+
+# #from kivy.core.window import Window
 # Les 3 lignes ci-dessous sont à commenter pour buildozer
 # L'écran de mon tél fait 1280*720
 # #k = 1.0
@@ -65,6 +78,7 @@ from kivy.uix.widget import Widget
 from kivy.properties import StringProperty, ListProperty, NumericProperty
 # Pour appliquer le multitouch
 from kivy.uix.scatter import Scatter
+from kivy.logger import Logger
 
 # Récupération de l'ip locale pour l'envoyer à tous les clients en multicast
 def get_my_LAN_ip():
@@ -178,6 +192,7 @@ class MulticastClient(DatagramProtocol):
             self.tempo = 1 / freq
         else:
             self.tempo = 1
+
         self.tictac = Clock.schedule_interval(self.update, self.tempo)
 
     def update(self, dt):
@@ -186,9 +201,11 @@ class MulticastClient(DatagramProtocol):
         self.app
         """
 
-        scr1 = self.app.screen_manager.get_screen("Screen1")
-        data = scr1.create_message()
-        # #print("Envoi de:", data)
+        # Ecran en cours
+        scr_name = self.app.screen_manager.current_screen.name
+        scr = self.app.screen_manager.get_screen(scr_name)
+
+        data = scr.create_message()
         self.transport.write(data,self.address)
 
 
@@ -197,7 +214,7 @@ class MainScreen(Screen):
     root est le parent de cette classe dans la section <MainScreen> du kv
     """
 
-    # Attribut de class, obligatoire, utilisé dans kv avec root.titre
+    # Attribut de class, obligatoire poue appeler root.titre dans kv
     titre = StringProperty("toto")
 
     def __init__(self, **kwargs):
@@ -242,7 +259,8 @@ class Screen1(Screen):
                 "image position": (100, 200)
         """
 
-        data_dict = {   "kivy_ip": LAN_IP,
+        data_dict = {   "ip": LAN_IP,
+                        "unit": "coeff",
                         "image_size": self.img_size,
                         "image_pos": (self.pos_hori, self.pos_vert)}
 
@@ -251,20 +269,59 @@ class Screen1(Screen):
         return data
 
 
-class Paddle(Scatter):
-    """do_scale est fait par Scatter"""
+class Picture(Scatter):
 
-    pass
+    source = StringProperty(None)
 
-    # #def __init__(self, **kwargs):
-        # #super().__init__(**kwargs)
-        # ## self.bbox = ((0.0, 0.0), (100.0, 100.0))
 
 class Screen2(Screen):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        print("Initialisation du Screen Screen2 ok")
+        print("Initialisation du Screen Screen2:")
+
+        # Toules les images chargées dans un dict
+        self.pictures = {}
+
+        # get any files into images directory
+        curdir = dirname(__file__)
+        n = 0
+        for filename in glob(join(curdir, 'images', '*')):
+            try:
+                # load the image
+                # picture = Picture(source=filename, rotation=randint(-30, 30))
+                self.pictures[n] = Picture(source=filename, rotation=0)
+
+                # add to the main field
+                self.add_widget(self.pictures[n])
+
+                n += 1
+
+            except Exception as e:
+                Logger.exception('Pictures: Unable to load', filename)
+
+    def create_message(self):
+        """Rajouter des tests sur existance des valeurs !!!"""
+
+        img_scale = self.pictures[0].scale
+        image_size = (  self.pictures[0].width * img_scale,
+                        self.pictures[0].height * img_scale )
+
+        pos_hori, pos_vert = (  self.pictures[0].pos[0],
+                                self.pictures[0].pos[1])
+
+        angle = self.pictures[0].rotation
+
+        print(  "image_size:", image_size,
+                "pos:", pos_hori, pos_vert,
+                "angle", angle )
+
+        data_dict = {   "unit": "pixel",
+                        "image_size": image_size,
+                        "image_pos": (pos_hori, pos_vert),
+                        "angle": angle}
+
+        return json.dumps(data_dict).encode("utf-8")
 
 
 """
@@ -458,7 +515,6 @@ class ApprendreKivyApp(App):
 
         # Extinction forcée de tout, si besoin
         os._exit(0)
-
 
 
 if __name__ == '__main__':

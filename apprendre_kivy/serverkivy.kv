@@ -1,16 +1,25 @@
 <TextureAccessibleWidget>:
 
-    # #canvas:
-        # #Color:
-            # #hsv: 0, 1, .5
+    # #canvas:  # Sans rotation
         # #Rectangle:
+            # #pos: self.pos
             # #size: self.size
-    # #canvas.after:
+            # #source: './images/labo.png'
+
+    canvas.before:
+        PushMatrix
+        Rotate:
+            angle: root.angle
+            origin: self.center
+
     canvas:
         Rectangle:
             pos: self.pos
             size: self.size
-            source: 'labo.jpg'
+            source: './images/labo.png'
+
+    canvas.after:
+        PopMatrix
 
 <Server>:
 

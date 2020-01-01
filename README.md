@@ -1,9 +1,30 @@
 # Apprendre Kivy
 
+### Comment créer une application Android en Python avec Kivy
+
+* [Kivy](https://kivy.org/doc/stable/)
+* [Twisted](https://twistedmatrix.com/trac/)
+
+Contexte:
+
+* Debian 10 Buster
+* Kivy 1.11.1
+* Twisted 18.9.0
+
+### Exemple des fonctionnalités suivantes
+
+* Intégration de Twisted, en Multicast et TCP
+* Déplacement, aggrandissement, rotation d'images
+* ScreenManager
+* Gestion de la configuration
+
+### Un serveur permet de recevoir les envois de l'application
+
+Ce serveur est construit lui aussi avec kivy, mais il est juste prévu pour tourner sur un PC.
 
 ### La documentation sur le wiki ressources.labomedia.org
 
-[Apprendre Kivy](https://ressources.labomedia.org/kivy_2020_apprendre_kivy)
+[Apprendre Kivy](https://ressources.labomedia.org/apprendre_kivy)
 
 ### License and Copyright
 
