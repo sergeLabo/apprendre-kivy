@@ -23,13 +23,14 @@
 """
 Application avec 3 écrans:
     - Main: image, button
-    - Screen1: slider
+    - Screen1: avec des slider
     - Screen2: Scatter qui gère le tactile
 """
 
 
-__version__ = '0.24'
+__version__ = '0.25'
 
+# 0.25 test sur pc ok
 # 0.24 avec rotation
 # 0.23 correction img_scale
 # 0.22 width au lieu de size sur écran 2
@@ -69,9 +70,9 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.clock import Clock
 from kivy.uix.widget import Widget
 from kivy.properties import StringProperty, ListProperty, NumericProperty
-# Pour appliquer le multitouch
-from kivy.uix.scatter import Scatter
 from kivy.logger import Logger
+# Pour appliquer le tactile multitouch
+from kivy.uix.scatter import Scatter
 
 
 class MyTcpClient(Protocol):
@@ -101,8 +102,15 @@ class MyTcpClient(Protocol):
         self.app
         """
 
-        scr1 = self.app.screen_manager.get_screen("Screen1")
-        data = scr1.create_message()
+        # Ecran en cours
+        scr_name = self.app.screen_manager.current_screen.name
+        scr = self.app.screen_manager.get_screen(scr_name)
+
+        if scr.name != "Main":
+            data = scr.create_message()
+        else:
+            data = json.dumps({}).encode("utf-8")
+
         self.transport.write(data)
 
 
@@ -183,7 +191,11 @@ class MulticastClient(DatagramProtocol):
         scr_name = self.app.screen_manager.current_screen.name
         scr = self.app.screen_manager.get_screen(scr_name)
 
-        data = scr.create_message()
+        if scr.name != "Main":
+            data = scr.create_message()
+        else:
+            data = json.dumps({}).encode("utf-8")
+
         self.transport.write(data,self.address)
 
 
@@ -216,8 +228,6 @@ class Screen1(Screen):
 
     def do_slider(self, iD, instance, value):
         """Called if slider change."""
-
-        print("slider", iD, value)
 
         if iD == "img_size":
             # Le slider dans kv à l'id: img_size
@@ -294,10 +304,10 @@ class Screen2(Screen):
 
             angle = self.pictures[0].rotation
 
-        data_dict = {   "unit": "pixel",
-                        "image_size": image_size,
-                        "image_pos": (pos_hori, pos_vert),
-                        "angle": angle}
+            data_dict = {   "unit": "pixel",
+                            "image_size": image_size,
+                            "image_pos": (pos_hori, pos_vert),
+                            "angle": angle}
 
         else:
             data_dict = {}
@@ -350,8 +360,8 @@ class ApprendreKivyApp(App):
             # Multicast
             self.multi_ip = self.config.get('network', 'multi_ip')
             self.multi_port = int(self.config.get('network', 'multi_port'))
-            # Le self d'ici est app de MulticastClient(self, app, ... 
-            reactor.listenMulticast(multi_port,
+            # Le self d'ici est app de MulticastClient(self, app, ...
+            reactor.listenMulticast(self.multi_port,
                                     MulticastClient(self, self.multi_ip),
                                     listenMultiple=True)
             aaaa = "Multicast client started: ip = {} port = {}"

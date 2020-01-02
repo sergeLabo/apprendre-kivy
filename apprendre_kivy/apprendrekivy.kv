@@ -3,7 +3,13 @@
 <MainScreen>:
     BoxLayout: # une boite pour tout
         orientation: 'horizontal'
-        color: (0, 0, 0, 1)
+
+        # #canvas.before:
+            # #Color:
+                # #rgb: 0.1, 0.1, 0.1
+            # #Rectangle:
+                # #size: self.size
+                # #pos: self.pos
 
         BoxLayout: # gauche avec image
             # Taille carrée, largeur = hauteur
@@ -11,12 +17,10 @@
             orientation: 'vertical'
 
             canvas:
-                # Impossible de modifier la couleur du fond et de coller une
-                # image avec alpha redimensionnée
                 Rectangle:
                     # self.size = taille du BoxLayout gauche
                     size: self.size
-                    source: "./images/labo.jpg"
+                    source: "./images/labo.png"
 
             Label:  # Apprendre Kivy
                 text: root.titre

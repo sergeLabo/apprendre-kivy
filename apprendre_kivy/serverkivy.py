@@ -227,8 +227,6 @@ class TextureAccessibleWidget(Widget):
             if "angle" in GLOBAL_DICT:
                 self.angle = GLOBAL_DICT["angle"]
 
-            print(self.angle)
-
         # Obtenu avec écran 1
         if unit == "coeff":
             # Size
@@ -455,12 +453,7 @@ def data_to_global_dict(data):
             global_dict[""] = data["ip"]
 
     else:
-        global_dict = { "image_size": 1,
-                        "image_pos": (0, 0),
-                        "freq": 1,
-                        "unit": "pixel",
-                        "angle": 0,
-                        "ip": "127.0.0.1"}
+        global_dict = {}
 
     return global_dict
 
