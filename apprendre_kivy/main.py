@@ -28,8 +28,9 @@ Application avec 3 écrans:
 """
 
 
-__version__ = '0.25'
+__version__ = '0.26'
 
+# 0.26 fond blanc ok
 # 0.25 test sur pc ok
 # 0.24 avec rotation
 # 0.23 correction img_scale

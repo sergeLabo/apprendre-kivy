@@ -6,7 +6,7 @@
 multipong/
 old/
 .buildozer/
-*.apk
+bin/
 
 # Python test
 *_old.py

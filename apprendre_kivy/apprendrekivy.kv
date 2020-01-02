@@ -4,12 +4,12 @@
     BoxLayout: # une boite pour tout
         orientation: 'horizontal'
 
-        # #canvas.before:
-            # #Color:
-                # #rgb: 0.1, 0.1, 0.1
-            # #Rectangle:
-                # #size: self.size
-                # #pos: self.pos
+        canvas:
+            Color:
+                rgb: 1, 1, 1
+            Rectangle:
+                size: self.size
+                pos: self.pos
 
         BoxLayout: # gauche avec image
             # Taille carrée, largeur = hauteur
@@ -19,7 +19,8 @@
             canvas:
                 Rectangle:
                     # self.size = taille du BoxLayout gauche
-                    size: self.size
+                    size: self.size[0]/4, self.size[1]/4
+                    pos: self.center_x - self.size[0]/8, self.height / 10
                     source: "./images/labo.png"
 
             Label:  # Apprendre Kivy
