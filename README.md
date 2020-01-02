@@ -8,7 +8,6 @@
 * [Twisted](https://twistedmatrix.com/trac/)
 
 Contexte:
-
 * Debian 10 Buster
 * Kivy 1.11.1
 * Twisted 18.9.0
@@ -19,6 +18,7 @@ Contexte:
 * Déplacement, aggrandissement, rotation d'images
 * ScreenManager
 * Gestion de la configuration
+* Gestion du multitouch
 
 ### Un serveur permet de recevoir les envois de l'application
 
