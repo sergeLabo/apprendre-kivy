@@ -8,6 +8,9 @@ old/
 .buildozer/
 bin/
 
+# non exclus
+!buildozer.spec
+
 # Python test
 *_old.py
 
