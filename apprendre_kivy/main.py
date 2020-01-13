@@ -25,6 +25,10 @@ Application avec 3 écrans:
     - Main: image, button
     - Screen1: avec des slider
     - Screen2: Scatter qui gère le tactile
+
+Simulation du dpi
+    KIVY_METRICS_FONTSCALE=1.2 python3 main.py
+
 """
 
 
@@ -59,12 +63,12 @@ from twisted.internet.protocol import ReconnectingClientFactory
 import kivy
 kivy.require('1.11.1')
 
-# #from kivy.core.window import Window
+from kivy.core.window import Window
 # Les 3 lignes ci-dessous sont à commenter pour buildozer
 # L'écran de mon tél fait 1280*720
-# #k = 1.0
-# #WS = (int(1280*k), int(720*k))
-# #Window.size = WS
+k = 1.0
+WS = (int(1280*k), int(720*k))
+Window.size = WS
 
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen

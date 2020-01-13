@@ -162,19 +162,6 @@ class TextureAccessibleWidget(Widget):
         self.event = None
         self.clock_schedule()
 
-    def clock_schedule(self):
-        if "freq" in GLOBAL_DICT:
-            self.freq = GLOBAL_DICT["freq"]
-        else:
-            self.freq = 1
-
-        if self.freq != 0:
-            tempo = 1 / self.freq
-        else:
-            tempo = 1
-
-        self.event = Clock.schedule_interval(self.update, tempo)
-
     def texture_init(self, *args):
         """La recupération de la texture est tirée par les cheveux:
         ça marche, mais on peut certainement faire mieux.
@@ -187,6 +174,19 @@ class TextureAccessibleWidget(Widget):
         self.size_ori = self.texture.size
         self.width = self.size_ori[0] * 0.2
         self.height = self.size_ori[1] * 0.2
+
+    def clock_schedule(self):
+        if "freq" in GLOBAL_DICT:
+            self.freq = GLOBAL_DICT["freq"]
+        else:
+            self.freq = 1
+
+        if self.freq != 0:
+            tempo = 1 / self.freq
+        else:
+            tempo = 1
+
+        self.event = Clock.schedule_interval(self.update, tempo)
 
     def update(self, dt):
 
