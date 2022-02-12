@@ -31,15 +31,7 @@ Simulation du dpi
 
 """
 
-
 __version__ = '0.26'
-
-# 0.26 fond blanc ok
-# 0.25 test sur pc ok
-# 0.24 avec rotation
-# 0.23 correction img_scale
-# 0.22 width au lieu de size sur écran 2
-# 0.21 test avec self.pictures --> ok
 
 # De la bibliothèque standard, ne pas les ajouter dans buildozer.spec
 import os
@@ -47,7 +39,6 @@ import json
 import socket
 from time import sleep
 from glob import glob
-from random import randint
 from os.path import join, dirname
 
 # Pour twisted
@@ -151,15 +142,23 @@ class MyTcpClientFactory(ReconnectingClientFactory):
         ReconnectingClientFactory.clientConnectionFailed(self,connector,reason)
 
 
+class Picture(Scatter):
+    """Scatter capture et applique le tactile"""
+
+    # Le kv appelle cet attribut avec root.source
+    # C'est un attribut de class, obligatoire pour être appelé
+    source = StringProperty(None)
+
+
 class MulticastClient(DatagramProtocol):
-    """Avantge du multicast: tout le monde envoie et reçoit sans IP à définir,
+    """Avantage du multicast: tout le monde envoie et reçoit sans IP à définir,
     Inconvénient: charge le routeur
     """
 
     def __init__(self, app, multi_ip):
         """self.app:
         Ce mot clé se réferre toujours à l'instance de votre application.
-        Permet d'échager avec les autres class.
+        Permet d'échanger avec les autres class.
         """
         self.app = app
 
@@ -201,7 +200,7 @@ class MulticastClient(DatagramProtocol):
         else:
             data = json.dumps({}).encode("utf-8")
 
-        self.transport.write(data,self.address)
+        self.transport.write(data, self.address)
 
 
 class MainScreen(Screen):
@@ -259,13 +258,8 @@ class Screen1(Screen):
 
         return data
 
-
-class Picture(Scatter):
-    """Scatter capture et applique le tactile"""
-
-    # Le kv appelle cet attribut avec root.source
-    # C'est un attribut de class, obligatoire pour être appelé
-    source = StringProperty(None)
+    def go_to_screen_2(self):
+        screen2 = self.manager.get_screen("screen2")
 
 
 class Screen2(Screen):
@@ -286,7 +280,6 @@ class Screen2(Screen):
         for filename in glob(join(curdir, 'images', '*')):
             try:
                 # load the image
-                # picture = Picture(source=filename, rotation=randint(-30, 30))
                 self.pictures[n] = Picture(source=filename, rotation=0)
 
                 # add to the main field
@@ -343,9 +336,6 @@ class ApprendreKivyApp(App):
             # Pour chaque écran, équivaut à
             # self.screen_manager.add_widget(MainScreen(name="Main"))
             self.screen_manager.add_widget(SCREENS[i][0](name=SCREENS[i][1]))
-
-        # écran2 direct pour test
-        # self.screen_manager.current = ("Screen2")
 
         return self.screen_manager
 
@@ -475,6 +465,11 @@ class ApprendreKivyApp(App):
         if config is self.config:  # du joli python rigoureux
             token = (section, key)
 
+            # multi_ip = 228.0.0.5
+            if token == ('network', 'multi_ip'):
+                print("multi_ip", value)
+                self.multi_ip = value
+
             # Frequency
             if token == ('network', 'freq'):
                 # TODO recalcul tempo
@@ -487,11 +482,6 @@ class ApprendreKivyApp(App):
                 # relance du réseau
                 # TODO BUG les 2 réseaux vont tourner ensemble
                 self.on_start()
-
-            # multi_ip = 228.0.0.5
-            if token == ('network', 'multi_ip'):
-                print("multi_ip", value)
-                self.multi_ip = value
 
             # multi_port = 18888
             if token == ('network', 'multi_port'):
