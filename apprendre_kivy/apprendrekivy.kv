@@ -3,29 +3,24 @@
 <MainScreen>:
     BoxLayout: # une boite pour tout
         orientation: 'horizontal'
-
         canvas:
             Color:
-                rgb: 1, 1, 1
+                rgb: 1, 1, 1  # Fond blanc
             Rectangle:
                 size: self.size
                 pos: self.pos
-
         BoxLayout: # gauche avec image
             # Taille carrée, largeur = hauteur
             size_hint_x: root.height/root.width
             orientation: 'vertical'
-
             canvas:
                 Rectangle:
                     # self.size = taille du BoxLayout gauche
                     size: self.size[0]/4, self.size[1]/4
                     pos: self.center_x - self.size[0]/8, self.height / 10
                     source: "./images/labo.png"
-
             Label:  # Apprendre Kivy
                 text: root.titre
-                bold: True
                 size_hint_y: 0.1
                 font_size: "48dp"
                 color: (0.5, 0.5, 0, 1)
@@ -39,7 +34,6 @@
                 size_hint_y: 0.1
                 font_size: "24dp"
                 color: (1, 0, 1, 1)
-
         BoxLayout: # droite avec boutons
             size_hint_x: 1 - root.height/root.width
             orientation: 'vertical'
@@ -65,7 +59,6 @@
 <Screen1>:
     BoxLayout:# Une boîte pour tout
         orientation: 'horizontal'
-
         BoxLayout:  # Boite à gauche
             orientation: 'vertical'
             size_hint_x: 0.2
@@ -81,7 +74,6 @@
                 range: 0.2, 1
                 value: 1
                 on_value: root.do_slider("img_size", *args)
-
         BoxLayout:  # Boite au centre
             orientation: 'horizontal'
             size_hint_x: 0.6
@@ -103,7 +95,6 @@
                 range: 0, 1
                 value: 0
                 on_value: root.do_slider("pos_hori", *args)
-
         BoxLayout:  # Boite à droite
             orientation: 'vertical'
             size_hint_x: 0.2
@@ -118,7 +109,6 @@
                 font_size: 20
                 color: (0, 1, 1, 1)
                 text: "Quoi ?"
-
             Button:  # Ecran 2
                 size_hint_y: 0.08
                 background_color: (0.8, 0.8, 0.8, 1)
@@ -126,7 +116,6 @@
                 color: (0, 1, 0, 1)
                 font_size: "22dp"
                 on_release: app.root.current = "Screen2"
-
             Button:  # Retour mainscreen
                 size_hint_y: 0.08
                 background_color: (0.6, 0.6, 0.6, 1)
@@ -134,7 +123,6 @@
                 color: (0, 1, 0, 1)
                 font_size: "22dp"
                 on_release: app.go_mainscreen()
-
             Button:  # Options
                 size_hint_y: 0.08
                 background_color: (0.4, 0.4, 0.4, 1)
@@ -142,7 +130,6 @@
                 color: (0, 1, 0, 1)
                 font_size: "22dp"
                 on_release: app.open_settings()
-
             Button:  # Quitter
                 size_hint_y: 0.08
                 background_color: (0.2, 0.2, 0.2, 1)
