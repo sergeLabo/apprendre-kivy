@@ -1,0 +1,603 @@
+#:kivy 1.10.0
+
+<MainScreen>:
+    BoxLayout:
+        orientation: 'horizontal'
+        BoxLayout:
+            size_hint_x: 0.8
+            orientation: 'vertical'
+            Label:
+                text: "Multi Pong\nen reseau"
+                bold: True
+                size_hint_y: 0.6
+                font_size: "48dp"
+                color: (0, 1, 0, 1)
+            Label:
+                text: "Pong pour 10 joueurs"
+                size_hint_y: 0.4
+                font_size: "18dp"
+                color: (0, 1, 0, 1)
+
+        BoxLayout:
+            size_hint_x: 0.2
+            orientation: 'vertical'
+            Button:
+                background_color: (0.8, 0.8, 0.8, 1)
+                text: 'Jouer'
+                color: (0, 1, 0, 1)
+                font_size: "22dp"
+                on_release: app.root.current = "1"
+            Button:
+                background_color: (0.8, 0.8, 0.8, 1)
+                text: 'Options'
+                color: (0, 1, 0, 1)
+                font_size: "22dp"
+                on_release: app.open_settings()
+            Button:
+                background_color: (0.8, 0.8, 0.8, 1)
+                text: 'Quitter'
+                color: (0, 1, 0, 1)
+                font_size: "22dp"
+                on_release: app.do_quit()
+
+<PongBall>:
+    canvas:
+        Rectangle:
+            pos: self.pos
+            size: int(root.height/33), int(root.height/33) # 22 pour 720
+
+<PongPaddle>:
+    canvas:
+        Rectangle:
+            pos: self.pos
+            source: self.source
+            size: int(root.height/5.142), int(root.height/5.142)
+
+<PongPaddle3>:
+    canvas:
+        Rectangle:
+            pos: self.pos
+            source: self.source
+            size: int(root.height/8), int(root.height/8)
+
+<PongPaddle5>:
+    canvas:
+        Rectangle:
+            pos: self.pos
+            source: self.source
+            size: int(root.height/8.5), int(root.height/8.5)
+
+<PongPaddle6>:
+    canvas:
+        Rectangle:
+            pos: self.pos
+            source: self.source
+            size: int(root.height/10.8), int(root.height/10.8)
+
+<Screen1>:
+    ball: pong_ball
+    paddle_0: paddle0
+    paddle_1: paddle1
+    score_0: score0
+    score_1: score1
+    titre: Titre
+    classement: clsmt
+    canvas:
+        Clear
+    canvas:
+        Color:
+            rgba: 1,1,1,1
+        Line:
+            points: [int(x*(root.top/720)) for x in root.points]
+            joint: 'miter'
+            width: 3
+            close: 1
+        Line:
+            points: [(x*(root.top/720)+(root.top/2)-10*(root.top/720)) for x in root.net]
+            joint: 'miter'
+            width: 3
+            close: 1
+    Label:  # score0
+        id: score0
+        font_size: int(root.width/30)
+        color: 1, 0, 0 , 1
+        center_x: -int(root.width * 3.2/8)
+        center_y:  int(root.top * 3.5/8)
+        text: root.score_0.text
+    Label:  # score1
+        id: score1
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(root.width/30)
+        center_y:  int(root.top * 3.5/8)
+        text: root.score_1.text
+    Label:  # titre
+        id: Titre
+        color: 1, 1, 0, 1
+        font_size:  int(root.width/28)
+        center_x: int(root.width/3.2)
+        center_y: int(root.top * 3.6/8)
+        text: root.titre.text
+    Label:  # classement
+        id: clsmt
+        color: 1, 1, 0, 1
+        font_size: int(root.width/40)
+        center_x: int(root.width/4)
+        center_y: int(root.width/8)
+        text: root.classement.text
+    PongBall:  # pong_ball
+        id: pong_ball
+        pos: self.pos
+    PongPaddle:  # paddle_0
+        id: paddle0
+        pos: self.pos
+        source: self.source
+    PongPaddle:   #paddle_1
+        id: paddle1
+        pos: self.pos
+        source: self.source
+
+<Screen2>:
+    ball: pong_ball
+    paddle_0: paddle0
+    paddle_1: paddle1
+    score_0: score0
+    score_1: score1
+    titre: Titre
+    classement: clsmt
+    canvas:
+        Clear
+    canvas:
+        Color:
+            rgba: 1,1,1,1
+        Line:
+            points: [int(x*(root.top/720)) for x in root.points]
+            joint: 'miter'
+            width: 3
+            close: 1
+        Line:
+            points: [(x*(root.top/720) + (root.top/2)-10*(root.top/720)) for x in root.net]
+            joint: 'miter'
+            width: 3
+            close: 1
+    Label:  # score0
+        id: score0
+        font_size: int(root.width/30)
+        color: 1, 0, 0 , 1
+        center_x: -int(root.width * 3.2/8)
+        center_y:  int(root.top * 3.5/8)
+        text: root.score_0.text
+    Label:  # score1
+        id: score1
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(root.width/30)
+        center_y:  int(root.top * 3.5/8)
+        text: root.score_1.text
+    Label:  # titre
+        id: Titre
+        color: 1, 1, 0, 1
+        font_size:  int(root.width/28)
+        center_x: int(root.width/3.2)
+        center_y: int(root.top * 3.6/8)
+        text: root.titre.text
+    Label:  # classement
+        id: clsmt
+        color: 1, 1, 0, 1
+        font_size: int(root.width/40)
+        center_x: int(root.width/4)
+        center_y: int(root.width/8)
+        text: root.classement.text
+    PongBall:  # pong_ball
+        id: pong_ball
+        pos: self.pos
+    PongPaddle:  # paddle_0
+        id: paddle0
+        pos: self.pos
+        size: self.size
+        source: self.source
+    PongPaddle:   #paddle_1
+        id: paddle1
+        pos: self.pos
+        size: self.size
+        source: self.source
+
+<Screen3>:
+    ball: pong_ball
+    paddle_0: paddle0
+    paddle_1: paddle1
+    paddle_2: paddle2
+    score_0: score0
+    score_1: score1
+    score_2: score2
+    titre: Titre
+    classement: clsmt
+    canvas:
+        Clear
+    canvas:
+        Color:
+            rgba: 1,1,1,1
+        Line:
+            points: [int(x*(root.top/720)) for x in root.points]
+            joint: 'miter'
+            width: 3
+            close: 1
+        Line:
+            points: [(x*(root.top/720) + (root.top/2)) for x in root.net]
+            joint: 'miter'
+            width: 3
+            close: 1
+    Label:  # score0
+        id: score0
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(-root.width*1.5/8)
+        center_y:  int(-root.top*3.15/8)
+        text: root.score_0.text
+    Label:  # score1
+        id: score1
+        font_size: int(root.width/30)
+        color: 1, 0, 0 , 1
+        center_x: int(-root.width*2.9/8)
+        center_y:  int(root.top*1/16)
+        text: root.score_1.text
+    Label:  # score2
+        id: score2
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(-root.width*0/16)
+        center_y:  int(root.top*1/16)
+        text: root.score_2.text
+    Label:  # titre
+        id: Titre
+        color: 1, 1, 0, 1
+        font_size:  int(root.width/28)
+        center_x: int(root.width/3.2)
+        center_y: int(root.top * 3.6/8)
+        text: root.titre.text
+    Label:  # classement
+        id: clsmt
+        color: 1, 1, 0, 1
+        font_size: int(root.width/40)
+        center_x: int(root.width/4)
+        center_y: int(root.width/12)
+        text: root.classement.text
+    PongBall:  # pong_ball
+        id: pong_ball
+        pos: self.pos
+    PongPaddle3:  # paddle_0
+        id: paddle0
+        pos: self.pos
+        size: self.size
+        source: self.source
+    PongPaddle3:   #paddle_1
+        id: paddle1
+        pos: self.pos
+        size: self.size
+        source: self.source
+    PongPaddle3:   #paddle_2
+        id: paddle2
+        pos: self.pos
+        size: self.size
+        source: self.source
+
+<Screen4>:
+    ball: pong_ball
+    paddle_0: paddle0
+    paddle_1: paddle1
+    paddle_2: paddle2
+    paddle_3: paddle3
+    score_0: score0
+    score_1: score1
+    score_2: score2
+    score_3: score3
+    titre: Titre
+    classement: clsmt
+    canvas:
+        Clear
+    canvas:
+        Color:
+            rgba: 1,1,1,1
+        Line:
+            points: [int(x*(root.top/720)) for x in root.points]
+            joint: 'miter'
+            width: 3
+            close: 1
+        Line:
+            points: [(x*(root.top/720) + root.top/2-10*(root.top/720)) for x in root.net]
+            joint: 'miter'
+            width: 3
+            close: 1
+    Label:  # score0
+        id: score0
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(-root.width*1/5.5)
+        center_y:  int(-root.top*2.9/8)
+        text: root.score_0.text
+    Label:  # score1
+        id: score1
+        font_size: int(root.width/30)
+        color: 1, 0, 0 , 1
+        center_x: -int(root.width*3.1/8)
+        center_y:  int(root.top*1/16)
+        text: root.score_1.text
+    Label:  # score2
+        id: score2
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(-root.width*1/5.5)
+        center_y:  int(root.top*4/8)
+        text: root.score_2.text
+    Label:  # score3
+        id: score3
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(root.width/20)
+        center_y:  int(root.top*1/16)
+        text: root.score_3.text
+    Label:  # titre
+        id: Titre
+        color: 1, 1, 0, 1
+        font_size:  int(root.width/28)
+        center_x: int(root.width/3.2)
+        center_y: int(root.top * 3.6/8)
+        text: root.titre.text
+    Label:  # classement
+        id: clsmt
+        color: 1, 1, 0, 1
+        font_size: int(root.width/40)
+        center_x: int(root.width/4)
+        center_y: int(root.width*0.5/8)
+        text: root.classement.text
+    PongBall:  # pong_ball
+        id: pong_ball
+        pos: self.pos
+    PongPaddle:  # paddle_0
+        id: paddle0
+        pos: self.pos
+        size: self.size
+        source: self.source
+    PongPaddle:   #paddle_1
+        id: paddle1
+        pos: self.pos
+        size: self.size
+        source: self.source
+    PongPaddle:   #paddle_2
+        id: paddle2
+        pos: self.pos
+        size: self.size
+        source: self.source
+    PongPaddle:   #paddle_3
+        id: paddle3
+        pos: self.pos
+        size: self.size
+        source: self.source
+
+<Screen5>:
+    ball: pong_ball
+    paddle_0: paddle0
+    paddle_1: paddle1
+    paddle_2: paddle2
+    paddle_3: paddle3
+    paddle_4: paddle4
+    score_0: score0
+    score_1: score1
+    score_2: score2
+    score_3: score3
+    score_4: score4
+    titre: Titre
+    classement: clsmt
+    canvas:
+        Clear
+    canvas:
+        Color:
+            rgba: 1,1,1,1
+        Line:
+            points: [int(x*(root.top/720)) for x in root.points]
+            joint: 'miter'
+            width: 3
+            close: 1
+        Line:
+            points: [(x*(root.top/720)+(root.top/2)-10*(root.top/720)) for x in root.net]
+            joint: 'miter'
+            width: 3
+            close: 1
+    Label:  # score0
+        id: score0
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(-root.width/6)
+        center_y:  int(-root.top*2.7/8)
+        text: root.score_0.text
+    Label:  # score1
+        id: score1
+        font_size: int(root.width/30)
+        color: 1, 0, 0 , 1
+        center_x: -int(root.width*2.9/8)
+        center_y:  int(-root.top*0.5/8)
+        text: root.score_1.text
+    Label:  # score2
+        id: score2
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(-root.width*   2.4/8)
+        center_y: int( root.top  *   2.3/8)
+        text: root.score_2.text
+    Label:  # score3
+        id: score3
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(-root.width*  0.3/8)
+        center_y: int( root.top  *  2.3/8)
+        text: root.score_3.text
+    Label:  # score4
+        id: score4
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(root.width/40)
+        center_y:  int(-root.top*0.5/8)
+        text: root.score_4.text
+    Label:  # titre
+        id: Titre
+        color: 1, 1, 0, 1
+        font_size:  int(root.width/28)
+        center_x: int(root.width/3.2)
+        center_y: int(root.top * 3.6/8)
+        text: root.titre.text
+    Label:  # classement
+        id: clsmt
+        color: 1, 1, 0, 1
+        font_size: int(root.width/40)
+        center_x: int(root.width/4)
+        center_y: int(-root.width/32)
+        text: root.classement.text
+    PongBall:  # pong_ball
+        id: pong_ball
+        pos: self.pos
+    PongPaddle5:  # paddle_0
+        id: paddle0
+        pos: self.pos
+        size: self.size
+        source: self.source
+    PongPaddle5:   #paddle_1
+        id: paddle1
+        pos: self.pos
+        size: self.size
+        source: self.source
+    PongPaddle5:   #paddle_2
+        id: paddle2
+        pos: self.pos
+        size: self.size
+        source: self.source
+    PongPaddle5:   #paddle_3
+        id: paddle3
+        pos: self.pos
+        size: self.size
+        source: self.source
+    PongPaddle5:   #paddle_4
+        id: paddle4
+        pos: self.pos
+        size: self.size
+        source: self.source
+
+<Screen6>:
+    ball: pong_ball
+    paddle_0: paddle0
+    paddle_1: paddle1
+    paddle_2: paddle2
+    paddle_3: paddle3
+    paddle_4: paddle4
+    paddle_5: paddle5
+    score_0: score0
+    score_1: score1
+    score_2: score2
+    score_3: score3
+    score_4: score4
+    score_5: score5
+    titre: Titre
+    classement: clsmt
+    canvas:
+        Clear
+    canvas:
+        Color:
+            rgba: 1,1,1,1
+        Line:
+            points: [int(x*(root.top/720)) for x in root.points]
+            joint: 'miter'
+            width: 3
+            close: 1
+        Line:
+            points: [(x*(root.top/720) + (root.top/2)-14*(root.top/720)) for x in root.net]
+            joint: 'miter'
+            width: 3
+            close: 1
+    Label:  # score0
+        id: score0
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(root.width*(-4.5/16))
+        center_y: int(root.top  *(-4/16))
+        text: root.score_0.text
+    Label:  # score1
+        id: score1
+        font_size: int(root.width/30)
+        color: 1, 0, 0 , 1
+        center_x: int(root.width*(-5.9/16))
+        center_y: int(root.top  *( 1/16))
+        text: root.score_1.text
+    Label:  # score2
+        id: score2
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(root.width*(-4.5/16))
+        center_y: int(root.top  *( 6/16))
+        text: root.score_2.text
+    Label:  # score3
+        id: score3
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(root.width*(-0.7/16))
+        center_y: int(root.top  *( 6/16))
+        text: root.score_3.text
+    Label:  # score4
+        id: score4
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(root.width*( 0.5/16))
+        center_y: int(root.top  *(  1/16))
+        text: root.score_4.text
+    Label:  # score5
+        id: score5
+        font_size: int(root.width/30)
+        color: 0, 1, 0, 1
+        center_x: int(root.width*(-0.9/16))
+        center_y: int(root.top  *(-4.0/16))
+        text: root.score_5.text
+    Label:  # titre
+        id: Titre
+        color: 1, 1, 0, 1
+        font_size:  int(root.width/28)
+        center_x: int(root.width/3.2)
+        center_y: int(root.top * 3.6/8)
+        text: root.titre.text
+    Label:  # classement
+        id: clsmt
+        color: 1, 1, 0, 1
+        font_size: int(root.width/40)
+        center_x: int(root.width/4)
+        center_y: int(root.width*( 0/8))
+        text: root.classement.text
+    PongBall:  # pong_ball
+        id: pong_ball
+        pos: self.pos
+    PongPaddle6:  # paddle_0
+        id: paddle0
+        pos: self.pos
+        size: self.size
+        source: self.source
+    PongPaddle6:   #paddle_1
+        id: paddle1
+        pos: self.pos
+        size: self.size
+        source: self.source
+    PongPaddle6:   #paddle_2
+        id: paddle2
+        pos: self.pos
+        size: self.size
+        source: self.source
+    PongPaddle6:   #paddle_3
+        id: paddle3
+        pos: self.pos
+        size: self.size
+        source: self.source
+    PongPaddle6:   #paddle_4
+        id: paddle4
+        pos: self.pos
+        size: self.size
+        source: self.source
+    PongPaddle6:   #paddle_5
+        id: paddle5
+        pos: self.pos
+        size: self.size
+        source: self.source
